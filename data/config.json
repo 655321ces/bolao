@@ -1,0 +1,9 @@
+{
+  "exact": 10,
+  "winner": 5,
+  "goal_difference": 3,
+  "goal_bonus_home": 1,
+  "goal_bonus_away": 1,
+  "floor": 0,
+  "ceiling": 10
+}

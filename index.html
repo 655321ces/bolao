@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bolão Copa 2026 — Ranking</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header class="app-head">
+      <h1>🏆 Bolão Copa 2026</h1>
+      <div class="sub">Ranking e pontuação — atualizado a cada jogo</div>
+    </header>
+
+    <div id="selftest"></div>
+    <div id="conflicts"></div>
+
+    <nav class="tabs" id="tabs">
+      <button data-view="ranking" class="active">Ranking</button>
+      <button data-view="participant">Por participante</button>
+      <button data-view="game">Por jogo</button>
+      <button data-view="round">Por rodada</button>
+    </nav>
+
+    <main id="app"><p class="center muted">Carregando…</p></main>
+
+    <footer class="app-foot">
+      Dados em <code>/data</code> · <a href="admin.html">admin</a>
+    </footer>
+  </div>
+
+  <script src="engine.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
