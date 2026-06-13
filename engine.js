@@ -182,10 +182,40 @@ function runSelfTests() {
 }
 
 /**
- * Teste de integração: roda computeStandings sobre os dados carregados e
- * compara com o ranking esperado do critério de aceitação.
+ * Snapshot CONGELADO dos 2 primeiros jogos — regressão do motor.
+ * NÃO é afetado pelos dados ao vivo: serve só para provar que a lógica
+ * (pontuação + merge de aliases) continua dando o resultado já validado.
+ * Não edite isto ao lançar jogos novos; edite os arquivos em /data.
  */
-function runIntegrationTest(data) {
+const INTEGRATION_FIXTURE = {
+  fixtures: {},
+  config: { exact: 10, winner: 5, goal_difference: 3, goal_bonus_home: 1, goal_bonus_away: 1, floor: 0, ceiling: 10 },
+  aliases: { 'Xandó Acústico': 'Alexandre Nassif', 'Camilo Eiras Thomas': 'Camilo Thomas' },
+  results: { '1': [2, 0], '2': [2, 1] },
+  bets: {
+    '1': {
+      'Alexandre Nassif': [1, 0], 'Andres Vera': [1, 1], 'Bruno Henrique': [2, 1],
+      'Camilo Thomas': [2, 0], 'Carolina Argento': [2, 0], 'Cesar Santos': [2, 1],
+      'David': [2, 0], 'Drinho': [2, 0], 'Fabio Scaringella': [2, 0],
+      'Igor Bammesberger': [2, 1], 'Joao Ajaj': [2, 1], 'Juliana ajaj': [2, 0],
+      'Pepo Costa': [2, 0], 'Polvo Fernando': [2, 0]
+    },
+    '2': {
+      'Alexandre Nassif': [1, 1], 'Andres Vera': [1, 2], 'Bruno Henrique': [1, 1],
+      'Camilo Thomas': [2, 0], 'Carolina Argento': [2, 3], 'Cesar Santos': [1, 0],
+      'David': [1, 1], 'Drinho': [1, 2], 'Fabio Scaringella': [2, 2],
+      'Gabriel Portella': [1, 2], 'Igor Bammesberger': [1, 1], 'Joao Ajaj': [1, 2],
+      'Juliana ajaj': [1, 1], 'Pepo Costa': [1, 2], 'Polvo Fernando': [1, 0]
+    }
+  }
+};
+
+/**
+ * Teste de integração (regressão): roda computeStandings sobre o snapshot
+ * CONGELADO dos 2 jogos e compara com o ranking de referência validado.
+ * Independente dos dados ao vivo — o ranking real pode crescer livremente.
+ */
+function runIntegrationTest() {
   const expected = [
     ['Polvo Fernando', 18, 1], ['Camilo Thomas', 16, 1], ['Cesar Santos', 14, 0],
     ['Carolina Argento', 11, 1], ['David', 11, 1], ['Fabio Scaringella', 11, 1],
@@ -194,7 +224,7 @@ function runIntegrationTest(data) {
     ['Joao Ajaj', 6, 0], ['Andres Vera', 0, 0], ['Gabriel Portella', 0, 0]
   ];
   const failures = [];
-  const { ranking } = computeStandings(data);
+  const { ranking } = computeStandings(INTEGRATION_FIXTURE);
   const byName = {};
   for (const r of ranking) byName[r.name] = r;
 

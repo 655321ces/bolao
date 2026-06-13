@@ -56,7 +56,7 @@ function breakdownText(d) {
 /* ---------------- Self-test banner ---------------- */
 function renderSelfTest() {
   const unit = runSelfTests();
-  const integ = runIntegrationTest(DATA);
+  const integ = runIntegrationTest();
   const box = $('#selftest');
   if (unit.length === 0 && integ.length === 0) {
     box.innerHTML = '';
