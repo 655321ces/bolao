@@ -57,14 +57,15 @@ function breakdownText(d) {
 function renderSelfTest() {
   const unit = runSelfTests();
   const integ = runIntegrationTest();
+  const tie = runTiebreakTest();
   const box = $('#selftest');
-  if (unit.length === 0 && integ.length === 0) {
+  if (unit.length === 0 && integ.length === 0 && tie.length === 0) {
     box.innerHTML = '';
-    box.append(el('div', { class: 'banner ok' }, '✓ Self-test: motor e ranking de referência conferem (6 testes unitários + 15 participantes).'));
+    box.append(el('div', { class: 'banner ok' }, '✓ Self-test: motor, ranking de referência e cascata de desempate conferem.'));
     return true;
   }
   const ul = el('ul');
-  [...unit, ...integ].forEach(f => ul.append(el('li', {}, f)));
+  [...unit, ...integ, ...tie].forEach(f => ul.append(el('li', {}, f)));
   box.innerHTML = '';
   box.append(el('div', { class: 'banner fail' },
     el('strong', {}, '✗ Self-test FALHOU — o ranking pode estar incorreto:'), ul));
@@ -111,25 +112,27 @@ function viewRanking(root) {
   table.append(el('thead', {}, el('tr', {},
     el('th', { class: 'rank-pos' }, '#'),
     el('th', {}, 'Participante'),
-    el('th', { class: 'num' }, 'Pontos'),
-    el('th', { class: 'num' }, 'Exatos')
+    el('th', { class: 'num' }, 'Pts'),
+    el('th', { class: 'num', title: 'Placares exatos (1º desempate)' }, 'Ex'),
+    el('th', { class: 'num', title: 'Acertos de direção: vitória/empate (2º desempate)' }, 'Tend'),
+    el('th', { class: 'num', title: 'Acerto dos gols de quem venceu, jogos decididos (3º desempate)' }, 'GV')
   )));
   const tbody = el('tbody');
-  let pos = 0, lastTotal = null, lastExacts = null, shown = 0;
   r.forEach(p => {
-    shown++;
-    // empate real (mesmo total e exatos) compartilha posição
-    if (p.total !== lastTotal || p.exacts !== lastExacts) { pos = shown; lastTotal = p.total; lastExacts = p.exacts; }
     tbody.append(el('tr', { class: 'clickable', onclick: () => goParticipant(p.name) },
-      el('td', { class: 'rank-pos' }, String(pos)),
+      el('td', { class: 'rank-pos' }, String(p.pos)),
       el('td', {}, p.name),
       el('td', { class: 'num pts-strong' }, String(p.total)),
-      el('td', { class: 'num' }, String(p.exacts))
+      el('td', { class: 'num' }, String(p.exacts)),
+      el('td', { class: 'num muted' }, String(p.tendencias)),
+      el('td', { class: 'num muted' }, String(p.golsVencedor))
     ));
   });
   table.append(tbody);
   root.append(table);
-  root.append(el('p', { class: 'small muted mt' }, 'Toque num participante para ver os detalhes. Empates ficam na mesma posição (desempate a definir).'));
+  root.append(el('p', { class: 'small muted mt' },
+    'Desempate: Pts → Exatos → Tendências (acertou vitória/empate) → Gols do vencedor. '
+    + 'Empate em tudo fica na mesma posição. Toque num nome para ver os detalhes.'));
 }
 
 /* ---------------- View: por participante ---------------- */

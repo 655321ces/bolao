@@ -114,9 +114,18 @@ function resolveBets(rawBets, aliases) {
 
 /**
  * Calcula o ranking geral e os detalhes por participante/jogo.
+ *
+ * Cascata de ordenação (cada critério só desempata o anterior):
+ *   1. pontos (total) DESC
+ *   2. exatos (placar cravado) DESC
+ *   3. tendencias (acertou direção: mandante/empate/visitante) DESC
+ *   4. golsVencedor (acertou nº de gols de quem venceu; empates ignorados) DESC
+ * Sem 5º critério: empate remanescente fica na mesma posição (padrão "1224").
+ * (A ordem alfabética abaixo é só estabilidade de EXIBIÇÃO, não desempate de posição.)
+ *
  * @returns {{
  *   participants: string[],
- *   ranking: Array<{name,total,exacts}>,
+ *   ranking: Array<{name,total,exacts,tendencias,golsVencedor,pos}>,
  *   perGame: object,   // gameId -> name -> {bet,result,points,exact,breakdown}
  *   conflicts: Array
  * }}
@@ -132,8 +141,8 @@ function computeStandings(data) {
   }
   const participants = [...participantSet];
 
-  const totals = {};   // name -> {total, exacts}
-  for (const name of participants) totals[name] = { total: 0, exacts: 0 };
+  const totals = {};   // name -> {total, exacts, tendencias, golsVencedor}
+  for (const name of participants) totals[name] = { total: 0, exacts: 0, tendencias: 0, golsVencedor: 0 };
 
   const perGame = {};  // gameId -> name -> detail
   for (const gameId of Object.keys(bets)) {
@@ -147,16 +156,39 @@ function computeStandings(data) {
       } else {
         const s = score(bet, result, config);
         detail = { bet, result, points: s.points, exact: s.exact, breakdown: s.breakdown, pending: false };
-        totals[name].total += s.points;
-        if (s.exact) totals[name].exacts += 1;
+        const t = totals[name];
+        t.total += s.points;
+        if (bet != null) {
+          const [ph, pa] = bet, [rh, ra] = result;
+          if (ph === rh && pa === ra) t.exacts += 1;                 // C1
+          if (sign(ph - pa) === sign(rh - ra)) t.tendencias += 1;     // C2 (inclui empates; exato implica direção)
+          if (rh !== ra && ((rh > ra && ph === rh) || (ra > rh && pa === ra))) t.golsVencedor += 1; // C3
+        }
       }
       perGame[gameId][name] = detail;
     }
   }
 
   const ranking = participants
-    .map(name => ({ name, total: totals[name].total, exacts: totals[name].exacts }))
-    .sort((a, b) => b.total - a.total || b.exacts - a.exacts || a.name.localeCompare(b.name, 'pt'));
+    .map(name => ({ name, total: totals[name].total, exacts: totals[name].exacts, tendencias: totals[name].tendencias, golsVencedor: totals[name].golsVencedor }))
+    .sort((a, b) =>
+      b.total - a.total ||
+      b.exacts - a.exacts ||
+      b.tendencias - a.tendencias ||
+      b.golsVencedor - a.golsVencedor ||
+      a.name.localeCompare(b.name, 'pt'));   // só estabilidade de exibição
+
+  // posições com padrão "1224": empate na tupla (pts,exatos,tend,golsVenc) compartilha posição
+  let pos = 0, shown = 0, prev = null;
+  for (const r of ranking) {
+    shown++;
+    if (!prev || prev.total !== r.total || prev.exacts !== r.exacts ||
+        prev.tendencias !== r.tendencias || prev.golsVencedor !== r.golsVencedor) {
+      pos = shown;
+    }
+    r.pos = pos;
+    prev = r;
+  }
 
   return { participants, ranking, perGame, conflicts };
 }
@@ -240,7 +272,50 @@ function runIntegrationTest() {
   return failures;
 }
 
+/**
+ * Teste da CASCATA DE DESEMPATE: ordena o snapshot congelado e exige a
+ * sequência exata (posição + pts + exatos + tendências + gols do vencedor)
+ * do critério de aceitação da instrução de desempate.
+ */
+function runTiebreakTest() {
+  // [pos, nome, pts, exatos, tendencias, golsVencedor]
+  const expected = [
+    [1, 'Polvo Fernando', 18, 1, 2, 1],
+    [2, 'Camilo Thomas', 16, 1, 2, 2],
+    [3, 'Cesar Santos', 14, 0, 2, 1],
+    [4, 'Carolina Argento', 11, 1, 1, 2],
+    [4, 'Fabio Scaringella', 11, 1, 1, 2],
+    [6, 'David', 11, 1, 1, 1],
+    [6, 'Juliana ajaj', 11, 1, 1, 1],
+    [8, 'Drinho', 10, 1, 1, 1],
+    [8, 'Pepo Costa', 10, 1, 1, 1],
+    [10, 'Bruno Henrique', 7, 0, 1, 1],
+    [10, 'Igor Bammesberger', 7, 0, 1, 1],
+    [12, 'Alexandre Nassif', 7, 0, 1, 0],
+    [13, 'Joao Ajaj', 6, 0, 1, 1],
+    [14, 'Andres Vera', 0, 0, 0, 0],
+    [14, 'Gabriel Portella', 0, 0, 0, 0]
+  ];
+  const failures = [];
+  const { ranking } = computeStandings(INTEGRATION_FIXTURE);
+  if (ranking.length !== expected.length) {
+    failures.push(`desempate: nº de participantes ${ranking.length} != ${expected.length}`);
+  }
+  for (let i = 0; i < expected.length; i++) {
+    const [pos, name, pts, ex, tend, gv] = expected[i];
+    const r = ranking[i];
+    if (!r) { failures.push(`desempate pos ${i + 1}: faltando (esperado ${name})`); continue; }
+    if (r.name !== name) failures.push(`desempate ordem ${i + 1}: esperado ${name}, obtido ${r.name}`);
+    if (r.pos !== pos) failures.push(`${name} posição: esperado ${pos}, obtido ${r.pos}`);
+    if (r.total !== pts) failures.push(`${name} pts: esperado ${pts}, obtido ${r.total}`);
+    if (r.exacts !== ex) failures.push(`${name} exatos: esperado ${ex}, obtido ${r.exacts}`);
+    if (r.tendencias !== tend) failures.push(`${name} tendências: esperado ${tend}, obtido ${r.tendencias}`);
+    if (r.golsVencedor !== gv) failures.push(`${name} gols venc.: esperado ${gv}, obtido ${r.golsVencedor}`);
+  }
+  return failures;
+}
+
 // Exporta para uso em browser (global) e em Node (module) para testes
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { sign, score, canonical, resolveBets, computeStandings, runSelfTests, runIntegrationTest };
+  module.exports = { sign, score, canonical, resolveBets, computeStandings, runSelfTests, runIntegrationTest, runTiebreakTest };
 }
