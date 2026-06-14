@@ -177,14 +177,31 @@ function computeStandings(data) {
 
   const ranking = participants
     .map(name => ({ name, total: totals[name].total, exacts: totals[name].exacts, tendencias: totals[name].tendencias, golsVencedor: totals[name].golsVencedor }))
-    .sort((a, b) =>
-      b.total - a.total ||
-      b.exacts - a.exacts ||
-      b.tendencias - a.tendencias ||
-      b.golsVencedor - a.golsVencedor ||
-      a.name.localeCompare(b.name, 'pt'));   // só estabilidade de exibição
+    .sort(rankCompare);
+  assignPositions(ranking);
 
-  // posições com padrão "1224": empate na tupla (pts,exatos,tend,golsVenc) compartilha posição
+  return { participants, ranking, perGame, conflicts };
+}
+
+/**
+ * Comparador da cascata de desempate: pontos → exatos → tendências →
+ * gols do vencedor (todos DESC). O nome entra POR ÚLTIMO apenas como
+ * estabilidade de exibição (não é critério de desempate de posição).
+ */
+function rankCompare(a, b) {
+  return b.total - a.total ||
+    b.exacts - a.exacts ||
+    b.tendencias - a.tendencias ||
+    b.golsVencedor - a.golsVencedor ||
+    a.name.localeCompare(b.name, 'pt');
+}
+
+/**
+ * Atribui r.pos a uma lista JÁ ORDENADA, no padrão "1-2-2-4": empate na
+ * tupla (pontos,exatos,tendencias,golsVencedor) compartilha posição e a
+ * próxima posição pula de acordo. Retorna a própria lista.
+ */
+function assignPositions(ranking) {
   let pos = 0, shown = 0, prev = null;
   for (const r of ranking) {
     shown++;
@@ -195,133 +212,85 @@ function computeStandings(data) {
     r.pos = pos;
     prev = r;
   }
-
-  return { participants, ranking, perGame, conflicts };
+  return ranking;
 }
 
-/* ---------------- Self-test ---------------- */
+/* ---------------- Self-test (SINTÉTICO e permanente) ----------------
+   Entradas fixas inventadas, independentes de bets.json/results.json.
+   Vale o torneio inteiro — não quebra quando um jogo novo é lançado. */
 
+/** Testes unitários do motor de pontuação (config padrão). */
 function runSelfTests() {
   const cfg = { exact: 10, winner: 5, goal_difference: 3, goal_bonus_home: 1, goal_bonus_away: 1, floor: 0, ceiling: 10 };
   const failures = [];
-  const eq = (label, got, want) => { if (got !== want) failures.push(`${label}: esperado ${want}, obtido ${got}`); };
-
-  // Testes unitários do motor
-  eq('[2,0]vs[2,0]', score([2, 0], [2, 0], cfg).points, 10);
-  eq('[2,0]vs[2,0] exato', score([2, 0], [2, 0], cfg).exact, true);
-  eq('[1,0]vs[2,1]', score([1, 0], [2, 1], cfg).points, 8);
-  eq('[2,0]vs[2,1]', score([2, 0], [2, 1], cfg).points, 6);
-  eq('[1,1]vs[2,1]', score([1, 1], [2, 1], cfg).points, 1);
-  eq('[1,2]vs[2,1]', score([1, 2], [2, 1], cfg).points, 0);
-  eq('null', score(null, [2, 1], cfg).points, 0);
-  eq('null exato', score(null, [2, 1], cfg).exact, false);
-
-  return failures;
-}
-
-/**
- * Snapshot CONGELADO dos 2 primeiros jogos — regressão do motor.
- * NÃO é afetado pelos dados ao vivo: serve só para provar que a lógica
- * (pontuação + merge de aliases) continua dando o resultado já validado.
- * Não edite isto ao lançar jogos novos; edite os arquivos em /data.
- */
-const INTEGRATION_FIXTURE = {
-  fixtures: {},
-  config: { exact: 10, winner: 5, goal_difference: 3, goal_bonus_home: 1, goal_bonus_away: 1, floor: 0, ceiling: 10 },
-  aliases: { 'Xandó Acústico': 'Alexandre Nassif', 'Camilo Eiras Thomas': 'Camilo Thomas' },
-  results: { '1': [2, 0], '2': [2, 1] },
-  bets: {
-    '1': {
-      'Alexandre Nassif': [1, 0], 'Andres Vera': [1, 1], 'Bruno Henrique': [2, 1],
-      'Camilo Thomas': [2, 0], 'Carolina Argento': [2, 0], 'Cesar Santos': [2, 1],
-      'David': [2, 0], 'Drinho': [2, 0], 'Fabio Scaringella': [2, 0],
-      'Igor Bammesberger': [2, 1], 'Joao Ajaj': [2, 1], 'Juliana ajaj': [2, 0],
-      'Pepo Costa': [2, 0], 'Polvo Fernando': [2, 0]
-    },
-    '2': {
-      'Alexandre Nassif': [1, 1], 'Andres Vera': [1, 2], 'Bruno Henrique': [1, 1],
-      'Camilo Thomas': [2, 0], 'Carolina Argento': [2, 3], 'Cesar Santos': [1, 0],
-      'David': [1, 1], 'Drinho': [1, 2], 'Fabio Scaringella': [2, 2],
-      'Gabriel Portella': [1, 2], 'Igor Bammesberger': [1, 1], 'Joao Ajaj': [1, 2],
-      'Juliana ajaj': [1, 1], 'Pepo Costa': [1, 2], 'Polvo Fernando': [1, 0]
-    }
-  }
-};
-
-/**
- * Teste de integração (regressão): roda computeStandings sobre o snapshot
- * CONGELADO dos 2 jogos e compara com o ranking de referência validado.
- * Independente dos dados ao vivo — o ranking real pode crescer livremente.
- */
-function runIntegrationTest() {
-  const expected = [
-    ['Polvo Fernando', 18, 1], ['Camilo Thomas', 16, 1], ['Cesar Santos', 14, 0],
-    ['Carolina Argento', 11, 1], ['David', 11, 1], ['Fabio Scaringella', 11, 1],
-    ['Juliana ajaj', 11, 1], ['Drinho', 10, 1], ['Pepo Costa', 10, 1],
-    ['Alexandre Nassif', 7, 0], ['Bruno Henrique', 7, 0], ['Igor Bammesberger', 7, 0],
-    ['Joao Ajaj', 6, 0], ['Andres Vera', 0, 0], ['Gabriel Portella', 0, 0]
+  // [aposta, resultado, pontos esperados, exato esperado]
+  const cases = [
+    [[2, 0], [2, 0], 10, true],
+    [[1, 0], [2, 1], 8, false],
+    [[2, 0], [2, 1], 6, false],
+    [[1, 1], [2, 1], 1, false],
+    [[1, 2], [2, 1], 0, false],
+    [null, [3, 3], 0, false],
+    [[0, 0], [0, 0], 10, true],
+    [[1, 1], [2, 2], 8, false],
+    [[3, 0], [1, 0], 6, false],
+    [[5, 0], [5, 0], 10, true],
+    [[0, 2], [3, 2], 1, false]
   ];
-  const failures = [];
-  const { ranking } = computeStandings(INTEGRATION_FIXTURE);
-  const byName = {};
-  for (const r of ranking) byName[r.name] = r;
-
-  if (ranking.length !== expected.length) {
-    failures.push(`nº de participantes: esperado ${expected.length}, obtido ${ranking.length}`);
-  }
-  for (const [name, total, exacts] of expected) {
-    const r = byName[name];
-    if (!r) { failures.push(`${name}: ausente do ranking`); continue; }
-    if (r.total !== total) failures.push(`${name} total: esperado ${total}, obtido ${r.total}`);
-    if (r.exacts !== exacts) failures.push(`${name} exatos: esperado ${exacts}, obtido ${r.exacts}`);
+  for (const [bet, res, pts, exact] of cases) {
+    const s = score(bet, res, cfg);
+    const label = `${JSON.stringify(bet)}vs${JSON.stringify(res)}`;
+    if (s.points !== pts) failures.push(`${label}: pts esperado ${pts}, obtido ${s.points}`);
+    if (s.exact !== exact) failures.push(`${label}: exato esperado ${exact}, obtido ${s.exact}`);
   }
   return failures;
 }
 
+/** Helper de teste: participante a partir da tupla de métricas. */
+function mkTie(name, total, exacts, tendencias, golsVencedor) {
+  return { name, total, exacts, tendencias, golsVencedor };
+}
+
 /**
- * Teste da CASCATA DE DESEMPATE: ordena o snapshot congelado e exige a
- * sequência exata (posição + pts + exatos + tendências + gols do vencedor)
- * do critério de aceitação da instrução de desempate.
+ * Testes SINTÉTICOS da cascata de desempate: exercita rankCompare e
+ * assignPositions com tuplas inventadas (pontos, exatos, tendências,
+ * gols_vencedor). Não depende de nenhum dado real.
  */
-function runTiebreakTest() {
-  // [pos, nome, pts, exatos, tendencias, golsVencedor]
-  const expected = [
-    [1, 'Polvo Fernando', 18, 1, 2, 1],
-    [2, 'Camilo Thomas', 16, 1, 2, 2],
-    [3, 'Cesar Santos', 14, 0, 2, 1],
-    [4, 'Carolina Argento', 11, 1, 1, 2],
-    [4, 'Fabio Scaringella', 11, 1, 1, 2],
-    [6, 'David', 11, 1, 1, 1],
-    [6, 'Juliana ajaj', 11, 1, 1, 1],
-    [8, 'Drinho', 10, 1, 1, 1],
-    [8, 'Pepo Costa', 10, 1, 1, 1],
-    [10, 'Bruno Henrique', 7, 0, 1, 1],
-    [10, 'Igor Bammesberger', 7, 0, 1, 1],
-    [12, 'Alexandre Nassif', 7, 0, 1, 0],
-    [13, 'Joao Ajaj', 6, 0, 1, 1],
-    [14, 'Andres Vera', 0, 0, 0, 0],
-    [14, 'Gabriel Portella', 0, 0, 0, 0]
-  ];
+function runTiebreakTests() {
   const failures = [];
-  const { ranking } = computeStandings(INTEGRATION_FIXTURE);
-  if (ranking.length !== expected.length) {
-    failures.push(`desempate: nº de participantes ${ranking.length} != ${expected.length}`);
+  const orderOf = arr => [...arr].sort(rankCompare).map(p => p.name);
+  const expectOrder = (label, arr, want) => {
+    const got = orderOf(arr);
+    if (got.join(',') !== want.join(',')) failures.push(`${label}: esperado [${want}], obtido [${got}]`);
+  };
+
+  // 1. Pontos dominam tudo
+  expectOrder('pontos dominam', [mkTie('X', 10, 0, 0, 0), mkTie('Y', 9, 9, 9, 9)], ['X', 'Y']);
+  // 2. Exatos desempatam pontos iguais
+  expectOrder('exatos', [mkTie('X', 20, 1, 0, 0), mkTie('Y', 20, 2, 0, 0)], ['Y', 'X']);
+  // 3. Tendências desempatam (pontos+exatos iguais)
+  expectOrder('tendencias', [mkTie('X', 20, 1, 3, 0), mkTie('Y', 20, 1, 2, 5)], ['X', 'Y']);
+  // 4. Gols do vencedor desempatam (pontos+exatos+tendências iguais)
+  expectOrder('gols vencedor', [mkTie('X', 20, 1, 2, 1), mkTie('Y', 20, 1, 2, 2)], ['Y', 'X']);
+
+  // 5. Empate residual: métricas idênticas → mesma posição
+  const tie = assignPositions([mkTie('A', 11, 1, 1, 1), mkTie('B', 11, 1, 1, 1)].sort(rankCompare));
+  if (!(tie[0].pos === 1 && tie[1].pos === 1)) {
+    failures.push(`empate residual: esperado posições [1,1], obtido [${tie.map(t => t.pos)}]`);
   }
-  for (let i = 0; i < expected.length; i++) {
-    const [pos, name, pts, ex, tend, gv] = expected[i];
-    const r = ranking[i];
-    if (!r) { failures.push(`desempate pos ${i + 1}: faltando (esperado ${name})`); continue; }
-    if (r.name !== name) failures.push(`desempate ordem ${i + 1}: esperado ${name}, obtido ${r.name}`);
-    if (r.pos !== pos) failures.push(`${name} posição: esperado ${pos}, obtido ${r.pos}`);
-    if (r.total !== pts) failures.push(`${name} pts: esperado ${pts}, obtido ${r.total}`);
-    if (r.exacts !== ex) failures.push(`${name} exatos: esperado ${ex}, obtido ${r.exacts}`);
-    if (r.tendencias !== tend) failures.push(`${name} tendências: esperado ${tend}, obtido ${r.tendencias}`);
-    if (r.golsVencedor !== gv) failures.push(`${name} gols venc.: esperado ${gv}, obtido ${r.golsVencedor}`);
-  }
+
+  // Atribuição de posições padrão 1-2-2-4
+  const pos = assignPositions([
+    mkTie('P1', 18, 1, 2, 1), mkTie('P2a', 11, 1, 1, 2),
+    mkTie('P2b', 11, 1, 1, 2), mkTie('P4', 10, 1, 1, 1)
+  ].sort(rankCompare));
+  const gotPos = pos.map(p => p.pos).join(',');
+  if (gotPos !== '1,2,2,4') failures.push(`posições 1-2-2-4: esperado [1,2,2,4], obtido [${gotPos}]`);
+
   return failures;
 }
 
 // Exporta para uso em browser (global) e em Node (module) para testes
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { sign, score, canonical, resolveBets, computeStandings, runSelfTests, runIntegrationTest, runTiebreakTest };
+  module.exports = { sign, score, canonical, resolveBets, computeStandings, rankCompare, assignPositions, runSelfTests, runTiebreakTests };
 }

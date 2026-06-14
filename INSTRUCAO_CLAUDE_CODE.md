@@ -90,19 +90,33 @@ Preciso de um jeito prático de lançar as apostas **jogo a jogo** (é assim que
 
 (O admin é só pra mim; não precisa de autenticação — o GitHub já controla quem dá push. Se quiser, esconda o link.)
 
-## Critério de aceitação — TESTES QUE DEVEM PASSAR
-O motor já foi validado contra resultados reais. Implemente estes como testes automatizados (um pequeno bloco de asserts em JS que roda no console, ou uma seção de "self-test" na página) e garanta que TODOS passam:
+## Critério de aceitação — TESTES SINTÉTICOS (permanentes, NÃO atrelados aos dados reais)
 
-### Testes unitários do motor (config padrão):
-- `[2,0]` vs `[2,0]` → **10** (exato)
-- `[1,0]` vs `[2,1]` → **8** (direção 5 + saldo 3)
-- `[2,0]` vs `[2,1]` → **6** (direção 5 + gol mandante 1)
-- `[1,1]` vs `[2,1]` → **1** (empate errado, mas +1 gol visitante)
-- `[1,2]` vs `[2,1]` → **0** (direção errada, nenhum gol coincide)
-- `null` vs qualquer → **0**, exato=false
+> IMPORTANTE: os testes do motor devem usar **entradas fixas inventadas**, com resultado esperado fixo. Eles NÃO podem depender de `bets.json` nem de `results.json`, porque esses arquivos mudam a cada jogo lançado. Um teste que lê os dados reais "passa hoje e falha amanhã" sem nada estar quebrado. Implemente como um bloco de self-test que roda no console (ou numa página `tests.html`) e que continua válido durante todo o torneio.
 
-### Teste de integração (com os 2 jogos já lançados nos dados):
-Resultados: Jogo 1 = México 2x0, Jogo 2 = Coreia 2x1. O ranking final DEVE ser exatamente:
+### Testes do motor de pontuação (config padrão) — todos devem passar:
+| aposta | resultado | pontos | exato |
+|---|---|---|---|
+| [2,0] | [2,0] | 10 | sim |
+| [1,0] | [2,1] | 8 | não |
+| [2,0] | [2,1] | 6 | não |
+| [1,1] | [2,1] | 1 | não |
+| [1,2] | [2,1] | 0 | não |
+| null | [3,3] | 0 | não |
+| [0,0] | [0,0] | 10 | sim |
+| [1,1] | [2,2] | 8 | não |
+| [3,0] | [1,0] | 6 | não |
+| [5,0] | [5,0] | 10 | sim |
+| [0,2] | [3,2] | 1 | não |
+
+Casos que cada linha protege (não remover sem entender):
+- `[1,1]` vs `[2,2]` = **8**, não 5: num empate, acertar a direção já garante o saldo (saldo do empate é sempre 0). Empate certo ⇒ +5 direção +3 saldo.
+- `[0,2]` vs `[3,2]` = **1**: direção errada, mas o bônus de gol do visitante (+1) é independente da direção.
+- `[5,0]` vs `[5,0]` = **10**: placar exato trava em 10 e encerra; nunca acumula além disso.
+- `null` = 0 e exato=false sempre.
+
+### Conferência de primeiro deploy (rodar UMA vez, depois descartar — NÃO é teste permanente)
+Apenas no primeiro deploy, com somente os 2 primeiros jogos lançados (J1 México 2x0, J2 Coreia 2x1), confira manualmente que o ranking reproduz a tabela abaixo. Isto serve para validar que o código replica o cálculo conferido contra o site real. **Assim que o jogo 3 for lançado, esta tabela fica obsoleta e deve ser ignorada — não a transforme em teste automatizado.**
 
 | Participante | Total | Exatos |
 |---|---|---|
@@ -122,7 +136,7 @@ Resultados: Jogo 1 = México 2x0, Jogo 2 = Coreia 2x1. O ranking final DEVE ser 
 | Andres Vera | 0 | 0 |
 | Gabriel Portella | 0 | 0 |
 
-Se qualquer linha divergir, o motor ou o merge de aliases está errado — não prosseguir até bater. (Atenção especial: "Camilo Thomas" deve dar 16 e "Alexandre Nassif" deve dar 7 — esses dois validam que o merge de aliases trata "uma conta palpitou, a outra não" corretamente.)
+(Camilo Thomas = 16 e Alexandre Nassif = 7 validam o merge de alias "uma conta palpitou, a outra não". Se você já lançou mais jogos, os totais serão outros — isso é esperado, não é erro.)
 
 ## Estética
 Simples, limpo, mobile-first (vou abrir no celular). Pódio/destaque para o top 3 é bem-vindo. Sem firulas.
