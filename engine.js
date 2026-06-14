@@ -155,14 +155,20 @@ function computeStandings(data) {
         detail = { bet, result: null, points: 0, exact: false, breakdown: null, pending: true };
       } else {
         const s = score(bet, result, config);
-        detail = { bet, result, points: s.points, exact: s.exact, breakdown: s.breakdown, pending: false };
+        // critérios de desempate por jogo (booleans; usados também na UI)
+        let tendencia = false, golsVencedor = false;
+        if (bet != null) {
+          const [ph, pa] = bet, [rh, ra] = result;
+          tendencia = sign(ph - pa) === sign(rh - ra);                                          // C2 (inclui empates; exato implica direção)
+          golsVencedor = rh !== ra && ((rh > ra && ph === rh) || (ra > rh && pa === ra));        // C3
+        }
+        detail = { bet, result, points: s.points, exact: s.exact, tendencia, golsVencedor, breakdown: s.breakdown, pending: false };
         const t = totals[name];
         t.total += s.points;
         if (bet != null) {
-          const [ph, pa] = bet, [rh, ra] = result;
-          if (ph === rh && pa === ra) t.exacts += 1;                 // C1
-          if (sign(ph - pa) === sign(rh - ra)) t.tendencias += 1;     // C2 (inclui empates; exato implica direção)
-          if (rh !== ra && ((rh > ra && ph === rh) || (ra > rh && pa === ra))) t.golsVencedor += 1; // C3
+          if (s.exact) t.exacts += 1;        // C1
+          if (tendencia) t.tendencias += 1;  // C2
+          if (golsVencedor) t.golsVencedor += 1; // C3
         }
       }
       perGame[gameId][name] = detail;

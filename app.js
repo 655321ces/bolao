@@ -53,6 +53,23 @@ function breakdownText(d) {
   return parts.length ? parts.join(' · ') : 'sem acerto';
 }
 
+/**
+ * Selos dos critérios de desempate para um jogo: Exato / Tendência / Gols venc.
+ * Exato já implica os outros, então mostra só "Exato". Caso contrário, mostra
+ * os que foram acertados. Retorna um <span> (vazio se nada).
+ */
+function criteriaChips(d) {
+  const wrap = el('span', { class: 'chips' });
+  if (d.pending || d.bet == null) return wrap;
+  if (d.exact) {
+    wrap.append(el('span', { class: 'pill exact', title: 'Cravou o placar' }, 'Exato'));
+    return wrap;
+  }
+  if (d.tendencia) wrap.append(el('span', { class: 'pill tend', title: 'Acertou a direção (vitória/empate)' }, 'Tendência'));
+  if (d.golsVencedor) wrap.append(el('span', { class: 'pill gv', title: 'Acertou os gols de quem venceu' }, 'Gols venc.'));
+  return wrap;
+}
+
 /* ---------------- Self-test banner ---------------- */
 function renderSelfTest() {
   const unit = runSelfTests();
@@ -150,7 +167,11 @@ function viewParticipant(root) {
   const rankRow = STANDINGS.ranking.find(x => x.name === selectedParticipant);
   root.append(el('div', { class: 'card' },
     el('h3', {}, selectedParticipant),
-    el('div', { class: 'meta' }, `Total: ${rankRow.total} pts · ${rankRow.exacts} placar(es) exato(s)`)
+    el('div', { class: 'meta' },
+      `Total: ${rankRow.total} pts · `,
+      `${rankRow.exacts} exato(s) · `,
+      `${rankRow.tendencias} tendência(s) · `,
+      `${rankRow.golsVencedor} gol(s) do vencedor`)
   ));
 
   const table = el('table');
@@ -169,13 +190,12 @@ function viewParticipant(root) {
     any = true;
     const ptsCell = d.pending
       ? el('td', { class: 'num' }, el('span', { class: 'pill pending' }, '—'))
-      : el('td', { class: 'num' },
-          el('span', { class: 'score-chip' + (d.points ? ' pts-strong' : ' muted') }, String(d.points)),
-          d.exact ? el('span', { class: 'pill exact', style: 'margin-left:6px' }, 'exato') : null);
+      : el('td', { class: 'num' }, el('span', { class: 'score-chip' + (d.points ? ' pts-strong' : ' muted') }, String(d.points)));
     tbody.append(el('tr', { class: 'clickable', onclick: () => goGame(gid) },
       el('td', {},
         el('div', {}, matchLabel(gid)),
-        el('div', { class: 'breakdown' }, d.pending ? 'aguardando resultado' : breakdownText(d))),
+        el('div', { class: 'breakdown' }, d.pending ? 'aguardando resultado' : breakdownText(d)),
+        criteriaChips(d)),
       el('td', { class: 'num' }, fmtBet(d.bet)),
       el('td', { class: 'num' }, d.result ? `${d.result[0]}x${d.result[1]}` : '—'),
       ptsCell
@@ -226,12 +246,11 @@ function viewGame(root) {
   rows.forEach(d => {
     const ptsCell = d.pending
       ? el('td', { class: 'num' }, el('span', { class: 'pill pending' }, '—'))
-      : el('td', { class: 'num' },
-          el('span', { class: 'score-chip' + (d.points ? ' pts-strong' : ' muted') }, String(d.points)),
-          d.exact ? el('span', { class: 'pill exact', style: 'margin-left:6px' }, 'exato') : null);
+      : el('td', { class: 'num' }, el('span', { class: 'score-chip' + (d.points ? ' pts-strong' : ' muted') }, String(d.points)));
     tbody.append(el('tr', { class: 'clickable', onclick: () => goParticipant(d.name) },
       el('td', {}, el('div', {}, d.name),
-        d.pending ? null : el('div', { class: 'breakdown' }, breakdownText(d))),
+        d.pending ? null : el('div', { class: 'breakdown' }, breakdownText(d)),
+        criteriaChips(d)),
       el('td', { class: 'num' }, fmtBet(d.bet)),
       ptsCell
     ));

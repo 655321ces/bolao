@@ -82,8 +82,12 @@ tr.clickable:hover td { background: var(--surface-2); }
 
 .pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: .72rem; border: 1px solid var(--border); color: var(--muted); }
 .pill.exact { background: rgba(255,211,77,.14); border-color: var(--gold); color: var(--gold); }
+.pill.tend { background: rgba(46,204,113,.12); border-color: var(--accent-dim); color: var(--accent); }
+.pill.gv { background: rgba(120,170,255,.12); border-color: #4a6bbf; color: #8fb0ff; }
 .pill.pending { background: var(--surface-2); }
 .pill.zero { opacity: .6; }
+.chips { display: inline-flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.chips:empty { display: none; }
 
 .score-chip { font-variant-numeric: tabular-nums; font-weight: 600; }
 .muted { color: var(--muted); }
