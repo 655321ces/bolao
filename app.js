@@ -37,6 +37,27 @@ function matchLabel(gameId) {
   return `${f.home} x ${f.away}`;
 }
 
+/* Converte a data do fixture ("dd/mm HHh" ou "dd/mm HHhMM") em timestamp (ms).
+   Sem ano no fixture; assume FIXTURE_YEAR (horário de Brasília / local do navegador). */
+const FIXTURE_YEAR = 2026;
+function fixtureStart(f) {
+  const m = /^(\d{2})\/(\d{2})\s+(\d{1,2})h(\d{2})?$/.exec((f && f.date) || '');
+  if (!m) return NaN;
+  return new Date(FIXTURE_YEAR, +m[2] - 1, +m[1], +m[3], +m[4] || 0).getTime();
+}
+
+/* Último jogo já iniciado (maior horário <= agora); empates pegam o maior id.
+   Antes do 1º jogo, cai no primeiro da lista. */
+function lastStartedGameId(gameIds) {
+  const now = Date.now();
+  let best = null, bestT = -Infinity;
+  for (const gid of gameIds) {
+    const t = fixtureStart(DATA.fixtures[gid]);
+    if (!isNaN(t) && t <= now && t >= bestT) { bestT = t; best = gid; }
+  }
+  return best || gameIds[0];
+}
+
 function fmtBet(bet) {
   return bet == null ? '—' : `${bet[0]}x${bet[1]}`;
 }
@@ -210,8 +231,13 @@ let selectedGame = null;
 function goGame(gid) { selectedGame = gid; setView('game'); }
 
 function viewGame(root) {
-  const gameIds = Object.keys(DATA.fixtures).sort((a, b) => +a - +b);
-  if (!selectedGame || !gameIds.includes(selectedGame)) selectedGame = gameIds[0];
+  // ordena por horário real (os ids da FIFA não são cronológicos); empate/sem data cai no id
+  const gameIds = Object.keys(DATA.fixtures).sort((a, b) => {
+    const ta = fixtureStart(DATA.fixtures[a]), tb = fixtureStart(DATA.fixtures[b]);
+    if (isNaN(ta) || isNaN(tb) || ta === tb) return +a - +b;
+    return ta - tb;
+  });
+  if (!selectedGame || !gameIds.includes(selectedGame)) selectedGame = lastStartedGameId(gameIds);
 
   const sel = el('select', { onchange: e => { selectedGame = e.target.value; render(); } });
   gameIds.forEach(gid => {
