@@ -1,612 +1,2227 @@
 {
   "1": {
-    "Alexandre Nassif": [1, 0],
-    "Andres Vera": [1, 1],
-    "Bruno Henrique": [2, 1],
-    "Camilo Thomas": [2, 0],
-    "Carolina Argento": [2, 0],
-    "Cesar Santos": [2, 1],
-    "David": [2, 0],
-    "Drinho": [2, 0],
-    "Fabio Scaringella": [2, 0],
-    "Igor Bammesberger": [2, 1],
-    "Joao Ajaj": [2, 1],
-    "Juliana ajaj": [2, 0],
-    "Pepo Costa": [2, 0],
-    "Polvo Fernando": [2, 0]
+    "Alexandre Nassif": [
+      1,
+      0
+    ],
+    "Andres Vera": [
+      1,
+      1
+    ],
+    "Bruno Henrique": [
+      2,
+      1
+    ],
+    "Camilo Thomas": [
+      2,
+      0
+    ],
+    "Carolina Argento": [
+      2,
+      0
+    ],
+    "Cesar Santos": [
+      2,
+      1
+    ],
+    "David": [
+      2,
+      0
+    ],
+    "Drinho": [
+      2,
+      0
+    ],
+    "Fabio Scaringella": [
+      2,
+      0
+    ],
+    "Igor Bammesberger": [
+      2,
+      1
+    ],
+    "Joao Ajaj": [
+      2,
+      1
+    ],
+    "Juliana ajaj": [
+      2,
+      0
+    ],
+    "Pepo Costa": [
+      2,
+      0
+    ],
+    "Polvo Fernando": [
+      2,
+      0
+    ]
   },
   "2": {
-    "Alexandre Nassif": [1, 1],
-    "Andres Vera": [1, 2],
-    "Bruno Henrique": [1, 1],
-    "Camilo Thomas": [2, 0],
-    "Carolina Argento": [2, 3],
-    "Cesar Santos": [1, 0],
-    "David": [1, 1],
-    "Drinho": [1, 2],
-    "Fabio Scaringella": [2, 2],
-    "Gabriel Portella": [1, 2],
-    "Igor Bammesberger": [1, 1],
-    "Joao Ajaj": [1, 2],
-    "Juliana ajaj": [1, 1],
-    "Pepo Costa": [1, 2],
-    "Polvo Fernando": [1, 0]
+    "Alexandre Nassif": [
+      1,
+      1
+    ],
+    "Andres Vera": [
+      1,
+      2
+    ],
+    "Bruno Henrique": [
+      1,
+      1
+    ],
+    "Camilo Thomas": [
+      2,
+      0
+    ],
+    "Carolina Argento": [
+      2,
+      3
+    ],
+    "Cesar Santos": [
+      1,
+      0
+    ],
+    "David": [
+      1,
+      1
+    ],
+    "Drinho": [
+      1,
+      2
+    ],
+    "Fabio Scaringella": [
+      2,
+      2
+    ],
+    "Gabriel Portella": [
+      1,
+      2
+    ],
+    "Igor Bammesberger": [
+      1,
+      1
+    ],
+    "Joao Ajaj": [
+      1,
+      2
+    ],
+    "Juliana ajaj": [
+      1,
+      1
+    ],
+    "Pepo Costa": [
+      1,
+      2
+    ],
+    "Polvo Fernando": [
+      1,
+      0
+    ]
   },
   "3": {
-    "Alexandre Nassif": [0, 0],
-    "Andres Vera": [0, 1],
-    "Bruno Henrique": [1, 1],
-    "Camilo Thomas": [0, 1],
-    "Carolina Argento": [1, 1],
-    "Cesar Santos": [1, 0],
-    "David": [2, 1],
-    "Drinho": [1, 0],
-    "Fabio Scaringella": [1, 0],
-    "Gabriel Portella": [2, 0],
-    "Igor Bammesberger": [2, 0],
-    "Joao Ajaj": [1, 0],
-    "Juliana ajaj": [2, 0],
-    "Pepo Costa": [1, 1],
-    "Polvo Fernando": [1, 1]
+    "Alexandre Nassif": [
+      0,
+      0
+    ],
+    "Andres Vera": [
+      0,
+      1
+    ],
+    "Bruno Henrique": [
+      1,
+      1
+    ],
+    "Camilo Thomas": [
+      0,
+      1
+    ],
+    "Carolina Argento": [
+      1,
+      1
+    ],
+    "Cesar Santos": [
+      1,
+      0
+    ],
+    "David": [
+      2,
+      1
+    ],
+    "Drinho": [
+      1,
+      0
+    ],
+    "Fabio Scaringella": [
+      1,
+      0
+    ],
+    "Gabriel Portella": [
+      2,
+      0
+    ],
+    "Igor Bammesberger": [
+      2,
+      0
+    ],
+    "Joao Ajaj": [
+      1,
+      0
+    ],
+    "Juliana ajaj": [
+      2,
+      0
+    ],
+    "Pepo Costa": [
+      1,
+      1
+    ],
+    "Polvo Fernando": [
+      1,
+      1
+    ]
   },
   "4": {
-    "Alexandre Nassif": [1, 1],
-    "Andres Vera": [1, 2],
-    "Bruno Henrique": [1, 1],
-    "Camilo Thomas": [1, 0],
-    "Carolina Argento": [2, 3],
-    "Cesar Santos": [1, 0],
-    "David": [2, 2],
-    "Drinho": [2, 3],
-    "Fabio Scaringella": [1, 1],
-    "Gabriel Portella": [3, 0],
-    "Igor Bammesberger": [1, 2],
-    "Joao Ajaj": [1, 2],
-    "Juliana ajaj": [0, 2],
-    "Pepo Costa": [3, 2],
-    "Polvo Fernando": [2, 1]
+    "Alexandre Nassif": [
+      1,
+      1
+    ],
+    "Andres Vera": [
+      1,
+      2
+    ],
+    "Bruno Henrique": [
+      1,
+      1
+    ],
+    "Camilo Thomas": [
+      1,
+      0
+    ],
+    "Carolina Argento": [
+      2,
+      3
+    ],
+    "Cesar Santos": [
+      1,
+      0
+    ],
+    "David": [
+      2,
+      2
+    ],
+    "Drinho": [
+      2,
+      3
+    ],
+    "Fabio Scaringella": [
+      1,
+      1
+    ],
+    "Gabriel Portella": [
+      3,
+      0
+    ],
+    "Igor Bammesberger": [
+      1,
+      2
+    ],
+    "Joao Ajaj": [
+      1,
+      2
+    ],
+    "Juliana ajaj": [
+      0,
+      2
+    ],
+    "Pepo Costa": [
+      3,
+      2
+    ],
+    "Polvo Fernando": [
+      2,
+      1
+    ]
   },
   "5": {
-    "Alexandre Nassif": [0, 2],
-    "Andres Vera": [0, 3],
-    "Bruno Henrique": [0, 2],
-    "Camilo Thomas": [0, 2],
-    "Carolina Argento": [0, 1],
-    "Cesar Santos": [0, 2],
-    "David": [1, 2],
-    "Drinho": [0, 2],
-    "Fabio Scaringella": [0, 2],
-    "Gabriel Portella": [0, 2],
-    "Igor Bammesberger": [1, 3],
-    "Joao Ajaj": [0, 2],
-    "Juliana ajaj": [0, 1],
-    "Pepo Costa": [0, 3],
-    "Polvo Fernando": [0, 1]
+    "Alexandre Nassif": [
+      0,
+      2
+    ],
+    "Andres Vera": [
+      0,
+      3
+    ],
+    "Bruno Henrique": [
+      0,
+      2
+    ],
+    "Camilo Thomas": [
+      0,
+      2
+    ],
+    "Carolina Argento": [
+      0,
+      1
+    ],
+    "Cesar Santos": [
+      0,
+      2
+    ],
+    "David": [
+      1,
+      2
+    ],
+    "Drinho": [
+      0,
+      2
+    ],
+    "Fabio Scaringella": [
+      0,
+      2
+    ],
+    "Gabriel Portella": [
+      0,
+      2
+    ],
+    "Igor Bammesberger": [
+      1,
+      3
+    ],
+    "Joao Ajaj": [
+      0,
+      2
+    ],
+    "Juliana ajaj": [
+      0,
+      1
+    ],
+    "Pepo Costa": [
+      0,
+      3
+    ],
+    "Polvo Fernando": [
+      0,
+      1
+    ]
   },
   "6": {
-    "Alexandre Nassif": [2, 1],
-    "Andres Vera": [2, 1],
-    "Bruno Henrique": [1, 0],
-    "Camilo Thomas": [3, 0],
-    "Carolina Argento": [3, 1],
-    "Cesar Santos": [1, 0],
-    "David": [2, 1],
-    "Drinho": [4, 0],
-    "Fabio Scaringella": [1, 1],
-    "Gabriel Portella": [2, 0],
-    "Igor Bammesberger": [2, 1],
-    "Joao Ajaj": [2, 1],
-    "Juliana ajaj": [2, 1],
-    "Pepo Costa": [1, 1],
-    "Polvo Fernando": [2, 2]
+    "Alexandre Nassif": [
+      2,
+      1
+    ],
+    "Andres Vera": [
+      2,
+      1
+    ],
+    "Bruno Henrique": [
+      1,
+      0
+    ],
+    "Camilo Thomas": [
+      3,
+      0
+    ],
+    "Carolina Argento": [
+      3,
+      1
+    ],
+    "Cesar Santos": [
+      1,
+      0
+    ],
+    "David": [
+      2,
+      1
+    ],
+    "Drinho": [
+      4,
+      0
+    ],
+    "Fabio Scaringella": [
+      1,
+      1
+    ],
+    "Gabriel Portella": [
+      2,
+      0
+    ],
+    "Igor Bammesberger": [
+      2,
+      1
+    ],
+    "Joao Ajaj": [
+      2,
+      1
+    ],
+    "Juliana ajaj": [
+      2,
+      1
+    ],
+    "Pepo Costa": [
+      1,
+      1
+    ],
+    "Polvo Fernando": [
+      2,
+      2
+    ]
   },
   "7": {
-    "Alexandre Nassif": [0, 2],
-    "Andres Vera": [0, 3],
-    "Bruno Henrique": [0, 1],
-    "Camilo Thomas": [0, 1],
-    "Carolina Argento": [0, 3],
-    "Cesar Santos": [0, 1],
-    "David": [0, 4],
-    "Drinho": [0, 2],
-    "Fabio Scaringella": [0, 0],
-    "Gabriel Portella": [0, 4],
-    "Igor Bammesberger": [0, 2],
-    "Joao Ajaj": [0, 2],
-    "Juliana ajaj": [0, 3],
-    "Pepo Costa": [0, 2],
-    "Polvo Fernando": [0, 2]
+    "Alexandre Nassif": [
+      0,
+      2
+    ],
+    "Andres Vera": [
+      0,
+      3
+    ],
+    "Bruno Henrique": [
+      0,
+      1
+    ],
+    "Camilo Thomas": [
+      0,
+      1
+    ],
+    "Carolina Argento": [
+      0,
+      3
+    ],
+    "Cesar Santos": [
+      0,
+      1
+    ],
+    "David": [
+      0,
+      4
+    ],
+    "Drinho": [
+      0,
+      2
+    ],
+    "Fabio Scaringella": [
+      0,
+      0
+    ],
+    "Gabriel Portella": [
+      0,
+      4
+    ],
+    "Igor Bammesberger": [
+      0,
+      2
+    ],
+    "Joao Ajaj": [
+      0,
+      2
+    ],
+    "Juliana ajaj": [
+      0,
+      3
+    ],
+    "Pepo Costa": [
+      0,
+      2
+    ],
+    "Polvo Fernando": [
+      0,
+      2
+    ]
   },
   "8": {
-    "Alexandre Nassif": [0, 2],
-    "Andres Vera": [3, 3],
-    "Bruno Henrique": [1, 2],
-    "Camilo Thomas": [0, 1],
-    "Carolina Argento": [1, 2],
-    "Cesar Santos": [1, 2],
-    "David": [1, 2],
-    "Drinho": [1, 2],
-    "Fabio Scaringella": [1, 2],
-    "Gabriel Portella": [0, 3],
-    "Igor Bammesberger": [1, 2],
-    "Joao Ajaj": [1, 1],
-    "Juliana ajaj": [2, 1],
-    "Pepo Costa": [0, 2],
-    "Polvo Fernando": [1, 2]
+    "Alexandre Nassif": [
+      0,
+      2
+    ],
+    "Andres Vera": [
+      3,
+      3
+    ],
+    "Bruno Henrique": [
+      1,
+      2
+    ],
+    "Camilo Thomas": [
+      0,
+      1
+    ],
+    "Carolina Argento": [
+      1,
+      2
+    ],
+    "Cesar Santos": [
+      1,
+      2
+    ],
+    "David": [
+      1,
+      2
+    ],
+    "Drinho": [
+      1,
+      2
+    ],
+    "Fabio Scaringella": [
+      1,
+      2
+    ],
+    "Gabriel Portella": [
+      0,
+      3
+    ],
+    "Igor Bammesberger": [
+      1,
+      2
+    ],
+    "Joao Ajaj": [
+      1,
+      1
+    ],
+    "Juliana ajaj": [
+      2,
+      1
+    ],
+    "Pepo Costa": [
+      0,
+      2
+    ],
+    "Polvo Fernando": [
+      1,
+      2
+    ]
   },
   "9": {
-    "Alexandre Nassif": [4, 0],
-    "Andres Vera": [4, 0],
-    "Bruno Henrique": [3, 0],
-    "Camilo Thomas": [5, 0],
-    "Carolina Argento": [4, 0],
-    "Cesar Santos": [5, 0],
-    "David": [5, 0],
-    "Drinho": [5, 0],
-    "Fabio Scaringella": [4, 0],
-    "Gabriel Portella": [6, 0],
-    "Igor Bammesberger": [5, 0],
-    "Joao Ajaj": [5, 0],
-    "Juliana ajaj": [4, 0],
-    "Pepo Costa": [8, 0],
-    "Polvo Fernando": [3, 0]
+    "Alexandre Nassif": [
+      4,
+      0
+    ],
+    "Andres Vera": [
+      4,
+      0
+    ],
+    "Bruno Henrique": [
+      3,
+      0
+    ],
+    "Camilo Thomas": [
+      5,
+      0
+    ],
+    "Carolina Argento": [
+      4,
+      0
+    ],
+    "Cesar Santos": [
+      5,
+      0
+    ],
+    "David": [
+      5,
+      0
+    ],
+    "Drinho": [
+      5,
+      0
+    ],
+    "Fabio Scaringella": [
+      4,
+      0
+    ],
+    "Gabriel Portella": [
+      6,
+      0
+    ],
+    "Igor Bammesberger": [
+      5,
+      0
+    ],
+    "Joao Ajaj": [
+      5,
+      0
+    ],
+    "Juliana ajaj": [
+      4,
+      0
+    ],
+    "Pepo Costa": [
+      8,
+      0
+    ],
+    "Polvo Fernando": [
+      3,
+      0
+    ]
   },
   "10": {
-    "Alexandre Nassif": [3, 1],
-    "Andres Vera": [3, 1],
-    "Bruno Henrique": [1, 1],
-    "Camilo Thomas": [2, 0],
-    "Carolina Argento": [3, 2],
-    "Cesar Santos": [2, 1],
-    "David": [2, 2],
-    "Drinho": [1, 2],
-    "Fabio Scaringella": [2, 1],
-    "Gabriel Portella": [2, 0],
-    "Igor Bammesberger": [1, 2],
-    "Joao Ajaj": [1, 2],
-    "Juliana ajaj": [2, 0],
-    "Pepo Costa": [2, 2],
-    "Polvo Fernando": [2, 2]
+    "Alexandre Nassif": [
+      3,
+      1
+    ],
+    "Andres Vera": [
+      3,
+      1
+    ],
+    "Bruno Henrique": [
+      1,
+      1
+    ],
+    "Camilo Thomas": [
+      2,
+      0
+    ],
+    "Carolina Argento": [
+      3,
+      2
+    ],
+    "Cesar Santos": [
+      2,
+      1
+    ],
+    "David": [
+      2,
+      2
+    ],
+    "Drinho": [
+      1,
+      2
+    ],
+    "Fabio Scaringella": [
+      2,
+      1
+    ],
+    "Gabriel Portella": [
+      2,
+      0
+    ],
+    "Igor Bammesberger": [
+      1,
+      2
+    ],
+    "Joao Ajaj": [
+      1,
+      2
+    ],
+    "Juliana ajaj": [
+      2,
+      0
+    ],
+    "Pepo Costa": [
+      2,
+      2
+    ],
+    "Polvo Fernando": [
+      2,
+      2
+    ]
   },
   "11": {
-    "Alexandre Nassif": [1, 2],
-    "Andres Vera": [1, 2],
-    "Bruno Henrique": [2, 1],
-    "Camilo Eiras Thomas": [1, 1],
-    "Carolina Argento": [0, 1],
-    "Cesar Santos": [0, 0],
-    "David": [1, 1],
-    "Drinho": [1, 1],
-    "Fabio Scaringella": [2, 1],
-    "Gabriel Portella": [2, 2],
-    "Igor Bammesberger": [1, 2],
-    "Joao Ajaj": [2, 2],
-    "Juliana ajaj": [0, 2],
-    "Pepo Costa": [1, 1],
-    "Polvo Fernando": [1, 0]
+    "Alexandre Nassif": [
+      1,
+      2
+    ],
+    "Andres Vera": [
+      1,
+      2
+    ],
+    "Bruno Henrique": [
+      2,
+      1
+    ],
+    "Camilo Eiras Thomas": [
+      1,
+      1
+    ],
+    "Carolina Argento": [
+      0,
+      1
+    ],
+    "Cesar Santos": [
+      0,
+      0
+    ],
+    "David": [
+      1,
+      1
+    ],
+    "Drinho": [
+      1,
+      1
+    ],
+    "Fabio Scaringella": [
+      2,
+      1
+    ],
+    "Gabriel Portella": [
+      2,
+      2
+    ],
+    "Igor Bammesberger": [
+      1,
+      2
+    ],
+    "Joao Ajaj": [
+      2,
+      2
+    ],
+    "Juliana ajaj": [
+      0,
+      2
+    ],
+    "Pepo Costa": [
+      1,
+      1
+    ],
+    "Polvo Fernando": [
+      1,
+      0
+    ]
   },
   "12": {
-    "Alexandre Nassif": [2, 0],
-    "Andres Vera": [2, 1],
-    "Bruno Henrique": [1, 0],
-    "Camilo Eiras Thomas": [1, 0],
-    "Carolina Argento": [1, 2],
-    "Cesar Santos": [1, 0],
-    "David": [2, 0],
-    "Drinho": [1, 0],
-    "Fabio Scaringella": [1, 1],
-    "Gabriel Portella": [1, 0],
-    "Igor Bammesberger": [1, 0],
-    "Joao Ajaj": [2, 0],
-    "Juliana ajaj": [2, 0],
-    "Pepo Costa": [1, 1],
-    "Polvo Fernando": [1, 0]
+    "Alexandre Nassif": [
+      2,
+      0
+    ],
+    "Andres Vera": [
+      2,
+      1
+    ],
+    "Bruno Henrique": [
+      1,
+      0
+    ],
+    "Camilo Eiras Thomas": [
+      1,
+      0
+    ],
+    "Carolina Argento": [
+      1,
+      2
+    ],
+    "Cesar Santos": [
+      1,
+      0
+    ],
+    "David": [
+      2,
+      0
+    ],
+    "Drinho": [
+      1,
+      0
+    ],
+    "Fabio Scaringella": [
+      1,
+      1
+    ],
+    "Gabriel Portella": [
+      1,
+      0
+    ],
+    "Igor Bammesberger": [
+      1,
+      0
+    ],
+    "Joao Ajaj": [
+      2,
+      0
+    ],
+    "Juliana ajaj": [
+      2,
+      0
+    ],
+    "Pepo Costa": [
+      1,
+      1
+    ],
+    "Polvo Fernando": [
+      1,
+      0
+    ]
   },
-  "13" : {
-    "Alexandre Nassif": [3, 0],
-    "Andres Vera": [4, 0],
-    "Bruno Henrique": [4, 0],
-    "Camilo Eiras Thomas": [5, 0],
-    "Carolina Argento": [5, 0],
-    "Cesar Santos": [3, 0],
-    "David": [5, 1],
-    "Drinho": [5, 0],
-    "Fabio Scaringella": [6, 0],
-    "Gabriel Portella": [5, 0],
-    "Igor Bammesberger": [3, 0],
-    "Joao Ajaj": [6, 0],
-    "Juliana ajaj": [5, 0],
-    "Pepo Costa": [4, 0],
-    "Polvo Fernando": [3, 0]
+  "13": {
+    "Alexandre Nassif": [
+      3,
+      0
+    ],
+    "Andres Vera": [
+      4,
+      0
+    ],
+    "Bruno Henrique": [
+      4,
+      0
+    ],
+    "Camilo Eiras Thomas": [
+      5,
+      0
+    ],
+    "Carolina Argento": [
+      5,
+      0
+    ],
+    "Cesar Santos": [
+      3,
+      0
+    ],
+    "David": [
+      5,
+      1
+    ],
+    "Drinho": [
+      5,
+      0
+    ],
+    "Fabio Scaringella": [
+      6,
+      0
+    ],
+    "Gabriel Portella": [
+      5,
+      0
+    ],
+    "Igor Bammesberger": [
+      3,
+      0
+    ],
+    "Joao Ajaj": [
+      6,
+      0
+    ],
+    "Juliana ajaj": [
+      5,
+      0
+    ],
+    "Pepo Costa": [
+      4,
+      0
+    ],
+    "Polvo Fernando": [
+      3,
+      0
+    ]
   },
-  "14" :{
-    "Alexandre Nassif": [2, 2],
-    "Andres Vera": [2, 0],
-    "Bruno Henrique": [2, 1],
-    "Camilo Eiras Thomas": [2, 0],
-    "Carolina Argento": [3, 1],
-    "Cesar Santos": [1, 0],
-    "David": [2, 1],
-    "Drinho": [2, 0],
-    "Fabio Scaringella": [2, 0],
-    "Gabriel Portella": [2, 1],
-    "Igor Bammesberger": [2, 1],
-    "Joao Ajaj": [2, 1],
-    "Juliana ajaj": [2, 1],
-    "Pepo Costa": [3, 0],
-    "Polvo Fernando": [2, 1]
+  "14": {
+    "Alexandre Nassif": [
+      2,
+      2
+    ],
+    "Andres Vera": [
+      2,
+      0
+    ],
+    "Bruno Henrique": [
+      2,
+      1
+    ],
+    "Camilo Eiras Thomas": [
+      2,
+      0
+    ],
+    "Carolina Argento": [
+      3,
+      1
+    ],
+    "Cesar Santos": [
+      1,
+      0
+    ],
+    "David": [
+      2,
+      1
+    ],
+    "Drinho": [
+      2,
+      0
+    ],
+    "Fabio Scaringella": [
+      2,
+      0
+    ],
+    "Gabriel Portella": [
+      2,
+      1
+    ],
+    "Igor Bammesberger": [
+      2,
+      1
+    ],
+    "Joao Ajaj": [
+      2,
+      1
+    ],
+    "Juliana ajaj": [
+      2,
+      1
+    ],
+    "Pepo Costa": [
+      3,
+      0
+    ],
+    "Polvo Fernando": [
+      2,
+      1
+    ]
   },
-  "15" :{
-    "Alexandre Nassif": [1, 2],
-    "Andres Vera": [0, 1],
-    "Bruno Henrique": [1, 1],
-    "Camilo Eiras Thomas": [0, 1],
-    "Carolina Argento": [0, 2],
-    "Cesar Santos": [0, 2],
-    "David": [1, 2],
-    "Drinho": [0, 2],
-    "Fabio Scaringella": [0, 2],
-    "Gabriel Portella": [0, 2],
-    "Igor Bammesberger": [0, 0],
-    "Joao Ajaj": [0, 1],
-    "Juliana ajaj": [0, 2],
-    "Pepo Costa": [1, 2],
-    "Polvo Fernando": [1, 2]
+  "15": {
+    "Alexandre Nassif": [
+      1,
+      2
+    ],
+    "Andres Vera": [
+      0,
+      1
+    ],
+    "Bruno Henrique": [
+      1,
+      1
+    ],
+    "Camilo Eiras Thomas": [
+      0,
+      1
+    ],
+    "Carolina Argento": [
+      0,
+      2
+    ],
+    "Cesar Santos": [
+      0,
+      2
+    ],
+    "David": [
+      1,
+      2
+    ],
+    "Drinho": [
+      0,
+      2
+    ],
+    "Fabio Scaringella": [
+      0,
+      2
+    ],
+    "Gabriel Portella": [
+      0,
+      2
+    ],
+    "Igor Bammesberger": [
+      0,
+      0
+    ],
+    "Joao Ajaj": [
+      0,
+      1
+    ],
+    "Juliana ajaj": [
+      0,
+      2
+    ],
+    "Pepo Costa": [
+      1,
+      2
+    ],
+    "Polvo Fernando": [
+      1,
+      2
+    ]
   },
-  "16" :{
-    "Alexandre Nassif": [0, 0],
-    "Andres Vera": [0, 2],
-    "Bruno Henrique": [1, 0],
-    "Camilo Eiras Thomas": [0, 1],
-    "Carolina Argento": [1, 0],
-    "Cesar Santos": [1, 0],
-    "David": [1, 1],
-    "Drinho": [1, 1],
-    "Fabio Scaringella": [0, 0],
-    "Gabriel Portella": [1, 0],
-    "Igor Bammesberger": [1, 0],
-    "Joao Ajaj": [1, 0],
-    "Juliana ajaj": [0, 0],
-    "Pepo Costa": [2, 0],
-    "Polvo Fernando": [1, 1]
+  "16": {
+    "Alexandre Nassif": [
+      0,
+      0
+    ],
+    "Andres Vera": [
+      0,
+      2
+    ],
+    "Bruno Henrique": [
+      1,
+      0
+    ],
+    "Camilo Eiras Thomas": [
+      0,
+      1
+    ],
+    "Carolina Argento": [
+      1,
+      0
+    ],
+    "Cesar Santos": [
+      1,
+      0
+    ],
+    "David": [
+      1,
+      1
+    ],
+    "Drinho": [
+      1,
+      1
+    ],
+    "Fabio Scaringella": [
+      0,
+      0
+    ],
+    "Gabriel Portella": [
+      1,
+      0
+    ],
+    "Igor Bammesberger": [
+      1,
+      0
+    ],
+    "Joao Ajaj": [
+      1,
+      0
+    ],
+    "Juliana ajaj": [
+      0,
+      0
+    ],
+    "Pepo Costa": [
+      2,
+      0
+    ],
+    "Polvo Fernando": [
+      1,
+      1
+    ]
   },
-  "17" :{
-    "Alexandre Nassif": [2, 0],
-    "Andres Vera": [2, 0],
-    "Bruno Henrique": [2, 1],
-    "Camilo Eiras Thomas": [2, 0],
-    "Carolina Argento": [3, 1],
-    "Cesar Santos": [1, 0],
-    "David": [3, 2],
-    "Drinho": [3, 0],
-    "Fabio Scaringella": [2, 1],
-    "Gabriel Portella": [3, 1],
-    "Igor Bammesberger": [2, 0],
-    "Joao Ajaj": [1, 0],
-    "Juliana ajaj": [3, 0],
-    "Pepo Costa": [1, 1],
-    "Polvo Fernando": [2, 0]
+  "17": {
+    "Alexandre Nassif": [
+      2,
+      0
+    ],
+    "Andres Vera": [
+      2,
+      0
+    ],
+    "Bruno Henrique": [
+      2,
+      1
+    ],
+    "Camilo Eiras Thomas": [
+      2,
+      0
+    ],
+    "Carolina Argento": [
+      3,
+      1
+    ],
+    "Cesar Santos": [
+      1,
+      0
+    ],
+    "David": [
+      3,
+      2
+    ],
+    "Drinho": [
+      3,
+      0
+    ],
+    "Fabio Scaringella": [
+      2,
+      1
+    ],
+    "Gabriel Portella": [
+      3,
+      1
+    ],
+    "Igor Bammesberger": [
+      2,
+      0
+    ],
+    "Joao Ajaj": [
+      1,
+      0
+    ],
+    "Juliana ajaj": [
+      3,
+      0
+    ],
+    "Pepo Costa": [
+      1,
+      1
+    ],
+    "Polvo Fernando": [
+      2,
+      0
+    ]
   },
-  "18" :{
-    "Alexandre Nassif": [3, 1],
-    "Andres Vera": [4, 1],
-    "Bruno Henrique": [3, 1],
-    "Camilo Eiras Thomas": [3, 0],
-    "Carolina Argento": [3, 1],
-    "Cesar Santos": [2, 1],
-    "David": [2, 1],
-    "Drinho": [2, 0],
-    "Fabio Scaringella": [3, 1],
-    "Gabriel Portella": [2, 1],
-    "Igor Bammesberger": [4, 0],
-    "Joao Ajaj": [3, 1],
-    "Juliana ajaj": [3, 0],
-    "Pepo Costa": [2, 1],
-    "Polvo Fernando": [2, 0]
+  "18": {
+    "Alexandre Nassif": [
+      3,
+      1
+    ],
+    "Andres Vera": [
+      4,
+      1
+    ],
+    "Bruno Henrique": [
+      3,
+      1
+    ],
+    "Camilo Eiras Thomas": [
+      3,
+      0
+    ],
+    "Carolina Argento": [
+      3,
+      1
+    ],
+    "Cesar Santos": [
+      2,
+      1
+    ],
+    "David": [
+      2,
+      1
+    ],
+    "Drinho": [
+      2,
+      0
+    ],
+    "Fabio Scaringella": [
+      3,
+      1
+    ],
+    "Gabriel Portella": [
+      2,
+      1
+    ],
+    "Igor Bammesberger": [
+      4,
+      0
+    ],
+    "Joao Ajaj": [
+      3,
+      1
+    ],
+    "Juliana ajaj": [
+      3,
+      0
+    ],
+    "Pepo Costa": [
+      2,
+      1
+    ],
+    "Polvo Fernando": [
+      2,
+      0
+    ]
   },
-  "19":{
-    "Alexandre Nassif": [0, 2],
-    "Andres Vera": [0, 3],
-    "Bruno Henrique": [0, 2],
-    "Camilo Eiras Thomas": [0, 3],
-    "Carolina Argento": [0, 0],
-    "Cesar Santos": [0, 2],
-    "David": [0, 3],
-    "Drinho": [0, 2],
-    "Fabio Scaringella": [0, 3],
-    "Gabriel Portella": [0, 2],
-    "Igor Bammesberger": [0, 2],
-    "Joao Ajaj": [0, 2],
-    "Juliana ajaj": [0, 2],
-    "Pepo Costa": [0, 3],
-    "Polvo Fernando": [0, 2]
+  "19": {
+    "Alexandre Nassif": [
+      0,
+      2
+    ],
+    "Andres Vera": [
+      0,
+      3
+    ],
+    "Bruno Henrique": [
+      0,
+      2
+    ],
+    "Camilo Eiras Thomas": [
+      0,
+      3
+    ],
+    "Carolina Argento": [
+      0,
+      0
+    ],
+    "Cesar Santos": [
+      0,
+      2
+    ],
+    "David": [
+      0,
+      3
+    ],
+    "Drinho": [
+      0,
+      2
+    ],
+    "Fabio Scaringella": [
+      0,
+      3
+    ],
+    "Gabriel Portella": [
+      0,
+      2
+    ],
+    "Igor Bammesberger": [
+      0,
+      2
+    ],
+    "Joao Ajaj": [
+      0,
+      2
+    ],
+    "Juliana ajaj": [
+      0,
+      2
+    ],
+    "Pepo Costa": [
+      0,
+      3
+    ],
+    "Polvo Fernando": [
+      0,
+      2
+    ]
   },
-  "20":{
-    "Alexandre Nassif": [1, 0],
-    "Andres Vera": [1, 1],
-    "Bruno Henrique": [2, 0],
-    "Camilo Eiras Thomas": [1, 0],
-    "Carolina Argento": [1, 1],
-    "Cesar Santos": [3, 1],
-    "David": [3, 0],
-    "Drinho": [2, 0],
-    "Fabio Scaringella": [0, 0],
-    "Gabriel Portella": [2, 0],
-    "Igor Bammesberger": [0, 0],
-    "Joao Ajaj": [1, 0],
-    "Juliana ajaj": [1, 1],
-    "Pepo Costa": [3, 0],
-    "Polvo Fernando": [1, 0]
+  "20": {
+    "Alexandre Nassif": [
+      1,
+      0
+    ],
+    "Andres Vera": [
+      1,
+      1
+    ],
+    "Bruno Henrique": [
+      2,
+      0
+    ],
+    "Camilo Eiras Thomas": [
+      1,
+      0
+    ],
+    "Carolina Argento": [
+      1,
+      1
+    ],
+    "Cesar Santos": [
+      3,
+      1
+    ],
+    "David": [
+      3,
+      0
+    ],
+    "Drinho": [
+      2,
+      0
+    ],
+    "Fabio Scaringella": [
+      0,
+      0
+    ],
+    "Gabriel Portella": [
+      2,
+      0
+    ],
+    "Igor Bammesberger": [
+      0,
+      0
+    ],
+    "Joao Ajaj": [
+      1,
+      0
+    ],
+    "Juliana ajaj": [
+      1,
+      1
+    ],
+    "Pepo Costa": [
+      3,
+      0
+    ],
+    "Polvo Fernando": [
+      1,
+      0
+    ]
   },
-  "21" :{
-    "Alexandre Nassif": [3, 0],
-    "Andres Vera": [4, 0],
-    "Bruno Henrique": [3, 0],
-    "Camilo Eiras Thomas": [4, 0],
-    "Carolina Argento": [3, 0],
-    "Cesar Santos": [2, 0],
-    "David": [4, 1],
-    "Drinho": [4, 0],
-    "Fabio Scaringella": [4, 0],
-    "Gabriel Portella": [2, 0],
-    "Igor Bammesberger": [3, 0],
-    "Joao Ajaj": [3, 0],
-    "Juliana ajaj": [3, 0],
-    "Pepo Costa": [3, 0],
-    "Polvo Fernando": [3, 0]
+  "21": {
+    "Alexandre Nassif": [
+      3,
+      0
+    ],
+    "Andres Vera": [
+      4,
+      0
+    ],
+    "Bruno Henrique": [
+      3,
+      0
+    ],
+    "Camilo Eiras Thomas": [
+      4,
+      0
+    ],
+    "Carolina Argento": [
+      3,
+      0
+    ],
+    "Cesar Santos": [
+      2,
+      0
+    ],
+    "David": [
+      4,
+      1
+    ],
+    "Drinho": [
+      4,
+      0
+    ],
+    "Fabio Scaringella": [
+      4,
+      0
+    ],
+    "Gabriel Portella": [
+      2,
+      0
+    ],
+    "Igor Bammesberger": [
+      3,
+      0
+    ],
+    "Joao Ajaj": [
+      3,
+      0
+    ],
+    "Juliana ajaj": [
+      3,
+      0
+    ],
+    "Pepo Costa": [
+      3,
+      0
+    ],
+    "Polvo Fernando": [
+      3,
+      0
+    ]
   },
-  "22" :{
-    "Alexandre Nassif": [2, 1],
-    "Andres Vera": [2, 2],
-    "Bruno Henrique": [2, 1],
-    "Camilo Eiras Thomas": [1, 1],
-    "Carolina Argento": [3, 2],
-    "Cesar Santos": [2, 1],
-    "David": [2, 1],
-    "Drinho": [2, 1],
-    "Fabio Scaringella": [2, 1],
-    "Gabriel Portella": [1, 1],
-    "Igor Bammesberger": [2, 2],
-    "Joao Ajaj": [2, 1],
-    "Juliana ajaj": [2, 1],
-    "Pepo Costa": [1, 0],
-    "Polvo Fernando": [1, 1]
-  }, 
-  "23" :{
-    "Alexandre Nassif": [2, 0],
-    "Andres Vera": [2, 0],
-    "Bruno Henrique": [2, 1],
-    "Camilo Eiras Thomas": [1, 0],
-    "Carolina Argento": [2, 0],
-    "Cesar Santos": [1, 0],
-    "David": [2, 1],
-    "Drinho": [2, 0],
-    "Fabio Scaringella": [2, 0],
-    "Gabriel Portella": [2, 1],
-    "Igor Bammesberger": [1, 0],
-    "Joao Ajaj": [2, 0],
-    "Juliana ajaj": [1, 1],
-    "Pepo Costa": [1, 1],
-    "Polvo Fernando": [2, 0]
+  "22": {
+    "Alexandre Nassif": [
+      2,
+      1
+    ],
+    "Andres Vera": [
+      2,
+      2
+    ],
+    "Bruno Henrique": [
+      2,
+      1
+    ],
+    "Camilo Eiras Thomas": [
+      1,
+      1
+    ],
+    "Carolina Argento": [
+      3,
+      2
+    ],
+    "Cesar Santos": [
+      2,
+      1
+    ],
+    "David": [
+      2,
+      1
+    ],
+    "Drinho": [
+      2,
+      1
+    ],
+    "Fabio Scaringella": [
+      2,
+      1
+    ],
+    "Gabriel Portella": [
+      1,
+      1
+    ],
+    "Igor Bammesberger": [
+      2,
+      2
+    ],
+    "Joao Ajaj": [
+      2,
+      1
+    ],
+    "Juliana ajaj": [
+      2,
+      1
+    ],
+    "Pepo Costa": [
+      1,
+      0
+    ],
+    "Polvo Fernando": [
+      1,
+      1
+    ]
   },
-  "24" :{
-    "Alexandre Nassif": [0, 2],
-    "Andres Vera": [0, 2],
-    "Bruno Henrique": [1, 2],
-    "Camilo Eiras Thomas": [0, 2],
-    "Carolina Argento": [0, 2],
-    "Cesar Santos": [0, 1],
-    "David": [0, 2],
-    "Drinho": [1, 3],
-    "Fabio Scaringella": [0, 4],
-    "Gabriel Portella": [0, 1],
-    "Igor Bammesberger": [0, 2],
-    "Joao Ajaj": [0, 2],
-    "Juliana ajaj": [0, 1],
-    "Pepo Costa": [0, 2],
-    "Polvo Fernando": [0, 1]
+  "23": {
+    "Alexandre Nassif": [
+      2,
+      0
+    ],
+    "Andres Vera": [
+      2,
+      0
+    ],
+    "Bruno Henrique": [
+      2,
+      1
+    ],
+    "Camilo Eiras Thomas": [
+      1,
+      0
+    ],
+    "Carolina Argento": [
+      2,
+      0
+    ],
+    "Cesar Santos": [
+      1,
+      0
+    ],
+    "David": [
+      2,
+      1
+    ],
+    "Drinho": [
+      2,
+      0
+    ],
+    "Fabio Scaringella": [
+      2,
+      0
+    ],
+    "Gabriel Portella": [
+      2,
+      1
+    ],
+    "Igor Bammesberger": [
+      1,
+      0
+    ],
+    "Joao Ajaj": [
+      2,
+      0
+    ],
+    "Juliana ajaj": [
+      1,
+      1
+    ],
+    "Pepo Costa": [
+      1,
+      1
+    ],
+    "Polvo Fernando": [
+      2,
+      0
+    ]
   },
-  "25" :{
-    "Alexandre Nassif": [1, 2],
-    "Andres Vera": [1, 2],
-    "Bruno Henrique": [0, 2],
-    "Camilo Eiras Thomas": [0, 2],
-    "Carolina Argento": [0, 1],
-    "Cesar Santos": [1, 2],
-    "David": [1, 2],
-    "Drinho": [1, 2],
-    "Fabio Scaringella": [1, 1],
-    "Gabriel Portella": [1, 1],
-    "Igor Bammesberger": [1, 0],
-    "Joao Ajaj": [0, 1],
-    "Juliana ajaj": [0, 1],
-    "Pepo Costa": [1, 2],
-    "Polvo Fernando": [0, 1]
+  "24": {
+    "Alexandre Nassif": [
+      0,
+      2
+    ],
+    "Andres Vera": [
+      0,
+      2
+    ],
+    "Bruno Henrique": [
+      1,
+      2
+    ],
+    "Camilo Eiras Thomas": [
+      0,
+      2
+    ],
+    "Carolina Argento": [
+      0,
+      2
+    ],
+    "Cesar Santos": [
+      0,
+      1
+    ],
+    "David": [
+      0,
+      2
+    ],
+    "Drinho": [
+      1,
+      3
+    ],
+    "Fabio Scaringella": [
+      0,
+      4
+    ],
+    "Gabriel Portella": [
+      0,
+      1
+    ],
+    "Igor Bammesberger": [
+      0,
+      2
+    ],
+    "Joao Ajaj": [
+      0,
+      2
+    ],
+    "Juliana ajaj": [
+      0,
+      1
+    ],
+    "Pepo Costa": [
+      0,
+      2
+    ],
+    "Polvo Fernando": [
+      0,
+      1
+    ]
   },
-  "26" :{
-    "Alexandre Nassif": [1, 1],
-    "Andres Vera": [2, 0],
-    "Bruno Henrique": [2, 1],
-    "Camilo Eiras Thomas": [1, 0],
-    "Carolina Argento": [0, 1],
-    "Cesar Santos": [2, 1],
-    "David": [2, 1],
-    "Drinho": [3, 1],
-    "Fabio Scaringella": [2, 0],
-    "Gabriel Portella": [1, 1],
-    "Igor Bammesberger": [2, 1],
-    "Joao Ajaj": [1, 0],
-    "Juliana ajaj": [2, 1],
-    "Pepo Costa": [2, 1],
-    "Polvo Fernando": [2, 1]
+  "25": {
+    "Alexandre Nassif": [
+      1,
+      2
+    ],
+    "Andres Vera": [
+      1,
+      2
+    ],
+    "Bruno Henrique": [
+      0,
+      2
+    ],
+    "Camilo Eiras Thomas": [
+      0,
+      2
+    ],
+    "Carolina Argento": [
+      0,
+      1
+    ],
+    "Cesar Santos": [
+      1,
+      2
+    ],
+    "David": [
+      1,
+      2
+    ],
+    "Drinho": [
+      1,
+      2
+    ],
+    "Fabio Scaringella": [
+      1,
+      1
+    ],
+    "Gabriel Portella": [
+      1,
+      1
+    ],
+    "Igor Bammesberger": [
+      1,
+      0
+    ],
+    "Joao Ajaj": [
+      0,
+      1
+    ],
+    "Juliana ajaj": [
+      0,
+      1
+    ],
+    "Pepo Costa": [
+      1,
+      2
+    ],
+    "Polvo Fernando": [
+      0,
+      1
+    ]
   },
-  "27" :{
-    "Alexandre Nassif": [2, 0],
-    "Andres Vera": [3, 1],
-    "Bruno Henrique": [2, 0],
-    "Camilo Eiras Thomas": [2, 1],
-    "Carolina Argento": [1, 0],
-    "Cesar Santos": [2, 0],
-    "David": [3, 1],
-    "Drinho": [1, 0],
-    "Fabio Scaringella": [2, 1],
-    "Gabriel Portella": [1, 0],
-    "Igor Bammesberger": [1, 0],
-    "Joao Ajaj": [2, 0],
-    "Juliana ajaj": [2, 0],
-    "Pepo Costa": [3, 1],
-    "Polvo Fernando": [1, 0]
+  "26": {
+    "Alexandre Nassif": [
+      1,
+      1
+    ],
+    "Andres Vera": [
+      2,
+      0
+    ],
+    "Bruno Henrique": [
+      2,
+      1
+    ],
+    "Camilo Eiras Thomas": [
+      1,
+      0
+    ],
+    "Carolina Argento": [
+      0,
+      1
+    ],
+    "Cesar Santos": [
+      2,
+      1
+    ],
+    "David": [
+      2,
+      1
+    ],
+    "Drinho": [
+      3,
+      1
+    ],
+    "Fabio Scaringella": [
+      2,
+      0
+    ],
+    "Gabriel Portella": [
+      1,
+      1
+    ],
+    "Igor Bammesberger": [
+      2,
+      1
+    ],
+    "Joao Ajaj": [
+      1,
+      0
+    ],
+    "Juliana ajaj": [
+      2,
+      1
+    ],
+    "Pepo Costa": [
+      2,
+      1
+    ],
+    "Polvo Fernando": [
+      2,
+      1
+    ]
   },
-  "28" :{
-    "Alexandre Nassif": [2, 1],
-    "Andres Vera": [2, 1],
-    "Bruno Henrique": [1, 1],
-    "Camilo Eiras Thomas": [2, 2],
-    "Carolina Argento": [2, 1],
-    "Cesar Santos": [1, 1],
-    "David": [1, 2],
-    "Drinho": [2, 0],
-    "Fabio Scaringella": [1, 1],
-    "Gabriel Portella": [2, 1],
-    "Igor Bammesberger": [2, 1],
-    "Joao Ajaj": [2, 1],
-    "Juliana ajaj": [2, 0],
-    "Pepo Costa": [2, 2],
-    "Polvo Fernando": [2, 2]
+  "27": {
+    "Alexandre Nassif": [
+      2,
+      0
+    ],
+    "Andres Vera": [
+      3,
+      1
+    ],
+    "Bruno Henrique": [
+      2,
+      0
+    ],
+    "Camilo Eiras Thomas": [
+      2,
+      1
+    ],
+    "Carolina Argento": [
+      1,
+      0
+    ],
+    "Cesar Santos": [
+      2,
+      0
+    ],
+    "David": [
+      3,
+      1
+    ],
+    "Drinho": [
+      1,
+      0
+    ],
+    "Fabio Scaringella": [
+      2,
+      1
+    ],
+    "Gabriel Portella": [
+      1,
+      0
+    ],
+    "Igor Bammesberger": [
+      1,
+      0
+    ],
+    "Joao Ajaj": [
+      2,
+      0
+    ],
+    "Juliana ajaj": [
+      2,
+      0
+    ],
+    "Pepo Costa": [
+      3,
+      1
+    ],
+    "Polvo Fernando": [
+      1,
+      0
+    ]
+  },
+  "28": {
+    "Alexandre Nassif": [
+      2,
+      1
+    ],
+    "Andres Vera": [
+      2,
+      1
+    ],
+    "Bruno Henrique": [
+      1,
+      1
+    ],
+    "Camilo Eiras Thomas": [
+      2,
+      2
+    ],
+    "Carolina Argento": [
+      2,
+      1
+    ],
+    "Cesar Santos": [
+      1,
+      1
+    ],
+    "David": [
+      1,
+      2
+    ],
+    "Drinho": [
+      2,
+      0
+    ],
+    "Fabio Scaringella": [
+      1,
+      1
+    ],
+    "Gabriel Portella": [
+      2,
+      1
+    ],
+    "Igor Bammesberger": [
+      2,
+      1
+    ],
+    "Joao Ajaj": [
+      2,
+      1
+    ],
+    "Juliana ajaj": [
+      2,
+      0
+    ],
+    "Pepo Costa": [
+      2,
+      2
+    ],
+    "Polvo Fernando": [
+      2,
+      2
+    ]
   },
   "29": {
-    "Alexandre Nassif": [1, 1],
-    "Andres Vera": [0, 1],
-    "Bruno Henrique": [1, 1],
-    "Camilo Eiras Thomas": [1, 1],
-    "Carolina Argento": [1, 2],
-    "Cesar Santos": [2, 1],
-    "David": [1, 2],
-    "Drinho": [2, 1],
-    "Fabio Scaringella": [0, 0],
-    "Gabriel Portella": [2, 2],
-    "Igor Bammesberger": [4, 1],
-    "Joao Ajaj": [1, 1],
-    "Juliana ajaj": [0, 1],
-    "Pepo Costa": [3, 2],
-    "Polvo Fernando": [1, 1]
+    "Alexandre Nassif": [
+      1,
+      1
+    ],
+    "Andres Vera": [
+      0,
+      1
+    ],
+    "Bruno Henrique": [
+      1,
+      1
+    ],
+    "Camilo Eiras Thomas": [
+      1,
+      1
+    ],
+    "Carolina Argento": [
+      1,
+      2
+    ],
+    "Cesar Santos": [
+      2,
+      1
+    ],
+    "David": [
+      1,
+      2
+    ],
+    "Drinho": [
+      2,
+      1
+    ],
+    "Fabio Scaringella": [
+      0,
+      0
+    ],
+    "Gabriel Portella": [
+      2,
+      2
+    ],
+    "Igor Bammesberger": [
+      4,
+      1
+    ],
+    "Joao Ajaj": [
+      1,
+      1
+    ],
+    "Juliana ajaj": [
+      0,
+      1
+    ],
+    "Pepo Costa": [
+      3,
+      2
+    ],
+    "Polvo Fernando": [
+      1,
+      1
+    ]
   },
   "30": {
-    "Alexandre Nassif": [2, 0],
-    "Andres Vera": [2, 1],
-    "Bruno Henrique": [2, 1],
-    "Camilo Eiras Thomas": [3, 0],
-    "Carolina Argento": [2, 0],
-    "Cesar Santos": [1, 0],
-    "David": [2, 1],
-    "Drinho": [2, 0],
-    "Fabio Scaringella": [3, 0],
-    "Gabriel Portella": [2, 0],
-    "Igor Bammesberger": [1, 0],
-    "Joao Ajaj": [2, 0],
-    "Juliana ajaj": [3, 1],
-    "Pepo Costa": [1, 1],
-    "Polvo Fernando": [2, 0]
-  }, 
+    "Alexandre Nassif": [
+      2,
+      0
+    ],
+    "Andres Vera": [
+      2,
+      1
+    ],
+    "Bruno Henrique": [
+      2,
+      1
+    ],
+    "Camilo Eiras Thomas": [
+      3,
+      0
+    ],
+    "Carolina Argento": [
+      2,
+      0
+    ],
+    "Cesar Santos": [
+      1,
+      0
+    ],
+    "David": [
+      2,
+      1
+    ],
+    "Drinho": [
+      2,
+      0
+    ],
+    "Fabio Scaringella": [
+      3,
+      0
+    ],
+    "Gabriel Portella": [
+      2,
+      0
+    ],
+    "Igor Bammesberger": [
+      1,
+      0
+    ],
+    "Joao Ajaj": [
+      2,
+      0
+    ],
+    "Juliana ajaj": [
+      3,
+      1
+    ],
+    "Pepo Costa": [
+      1,
+      1
+    ],
+    "Polvo Fernando": [
+      2,
+      0
+    ]
+  },
   "31": {
-    "Alexandre Nassif": [2, 0],
-    "Andres Vera": [2, 1],
-    "Bruno Henrique": [2, 0],
-    "Camilo Eiras Thomas": [1, 1],
-    "Carolina Argento": [2, 1],
-    "Cesar Santos": [1, 0],
-    "David": [2, 1],
-    "Drinho": [2, 0],
-    "Fabio Scaringella": [2, 1],
-    "Gabriel Portella": [2, 1],
-    "Igor Bammesberger": [2, 1],
-    "Joao Ajaj": [2, 0],
-    "Juliana ajaj": [2, 0],
-    "Pepo Costa": [1, 1],
-    "Polvo Fernando": [2, 0]
+    "Alexandre Nassif": [
+      2,
+      0
+    ],
+    "Andres Vera": [
+      2,
+      1
+    ],
+    "Bruno Henrique": [
+      2,
+      0
+    ],
+    "Camilo Eiras Thomas": [
+      1,
+      1
+    ],
+    "Carolina Argento": [
+      2,
+      1
+    ],
+    "Cesar Santos": [
+      1,
+      0
+    ],
+    "David": [
+      2,
+      1
+    ],
+    "Drinho": [
+      2,
+      0
+    ],
+    "Fabio Scaringella": [
+      2,
+      1
+    ],
+    "Gabriel Portella": [
+      2,
+      1
+    ],
+    "Igor Bammesberger": [
+      2,
+      1
+    ],
+    "Joao Ajaj": [
+      2,
+      0
+    ],
+    "Juliana ajaj": [
+      2,
+      0
+    ],
+    "Pepo Costa": [
+      1,
+      1
+    ],
+    "Polvo Fernando": [
+      2,
+      0
+    ]
   },
   "32": {
-    "Alexandre Nassif": [3, 0],
-    "Andres Vera": [3, 0],
-    "Bruno Henrique": [3, 0],
-    "Camilo Eiras Thomas": [5, 0],
-    "Carolina Argento": [2, 0],
-    "Cesar Santos": [3, 0],
-    "David": [3, 0],
-    "Drinho": [3, 0],
-    "Fabio Scaringella": [4, 0],
-    "Gabriel Portella": [3, 0],
-    "Igor Bammesberger": [6, 0],
-    "Joao Ajaj": [4, 0],
-    "Juliana ajaj": [3, 1],
-    "Pepo Costa": [4, 0],
-    "Polvo Fernando": [3, 0]
+    "Alexandre Nassif": [
+      3,
+      0
+    ],
+    "Andres Vera": [
+      3,
+      0
+    ],
+    "Bruno Henrique": [
+      3,
+      0
+    ],
+    "Camilo Eiras Thomas": [
+      5,
+      0
+    ],
+    "Carolina Argento": [
+      2,
+      0
+    ],
+    "Cesar Santos": [
+      3,
+      0
+    ],
+    "David": [
+      3,
+      0
+    ],
+    "Drinho": [
+      3,
+      0
+    ],
+    "Fabio Scaringella": [
+      4,
+      0
+    ],
+    "Gabriel Portella": [
+      3,
+      0
+    ],
+    "Igor Bammesberger": [
+      6,
+      0
+    ],
+    "Joao Ajaj": [
+      4,
+      0
+    ],
+    "Juliana ajaj": [
+      3,
+      1
+    ],
+    "Pepo Costa": [
+      4,
+      0
+    ],
+    "Polvo Fernando": [
+      3,
+      0
+    ]
   },
-  "33" :{
-    "Alexandre Nassif": [3, 1],
-    "Andres Vera": [2, 1],
-    "Bruno Henrique": [1, 0],
-    "Camilo Eiras Thomas": [3, 1],
-    "Carolina Argento": [1, 0],
-    "Cesar Santos": [2, 1],
-    "David": [3, 2],
-    "Drinho": [1, 2],
-    "Fabio Scaringella": [3, 1],
-    "Gabriel Portella": [2, 0],
-    "Igor Bammesberger": [3, 1],
-    "Joao Ajaj": [2, 1],
-    "Juliana ajaj": [2, 2],
-    "Pepo Costa": [2, 1],
-    "Polvo Fernando": [2, 1]
+  "33": {
+    "Alexandre Nassif": [
+      3,
+      1
+    ],
+    "Andres Vera": [
+      2,
+      1
+    ],
+    "Bruno Henrique": [
+      1,
+      0
+    ],
+    "Camilo Eiras Thomas": [
+      3,
+      1
+    ],
+    "Carolina Argento": [
+      1,
+      0
+    ],
+    "Cesar Santos": [
+      2,
+      1
+    ],
+    "David": [
+      3,
+      2
+    ],
+    "Drinho": [
+      1,
+      2
+    ],
+    "Fabio Scaringella": [
+      3,
+      1
+    ],
+    "Gabriel Portella": [
+      2,
+      0
+    ],
+    "Igor Bammesberger": [
+      3,
+      1
+    ],
+    "Joao Ajaj": [
+      2,
+      1
+    ],
+    "Juliana ajaj": [
+      2,
+      2
+    ],
+    "Pepo Costa": [
+      2,
+      1
+    ],
+    "Polvo Fernando": [
+      2,
+      1
+    ]
   },
-  "34" :{
-    "Alexandre Nassif": [3, 0],
-    "Andres Vera": [4, 0],
-    "Bruno Henrique": [1, 0],
-    "Camilo Eiras Thomas": [2, 1],
-    "Carolina Argento": [3, 0],
-    "Cesar Santos": [2, 1],
-    "David": [3, 2],
-    "Drinho": [3, 1],
-    "Fabio Scaringella": [3, 2],
-    "Gabriel Portella": [3, 0],
-    "Igor Bammesberger": [0, 1],
-    "Joao Ajaj": [2, 1],
-    "Juliana ajaj": [4, 0],
-    "Pepo Costa": [1, 1],
-    "Polvo Fernando": [2, 1]
+  "34": {
+    "Alexandre Nassif": [
+      3,
+      0
+    ],
+    "Andres Vera": [
+      4,
+      0
+    ],
+    "Bruno Henrique": [
+      1,
+      0
+    ],
+    "Camilo Eiras Thomas": [
+      2,
+      1
+    ],
+    "Carolina Argento": [
+      3,
+      0
+    ],
+    "Cesar Santos": [
+      2,
+      1
+    ],
+    "David": [
+      3,
+      2
+    ],
+    "Drinho": [
+      3,
+      1
+    ],
+    "Fabio Scaringella": [
+      3,
+      2
+    ],
+    "Gabriel Portella": [
+      3,
+      0
+    ],
+    "Igor Bammesberger": [
+      0,
+      1
+    ],
+    "Joao Ajaj": [
+      2,
+      1
+    ],
+    "Juliana ajaj": [
+      4,
+      0
+    ],
+    "Pepo Costa": [
+      1,
+      1
+    ],
+    "Polvo Fernando": [
+      2,
+      1
+    ]
   },
-  "35" :{
-    "Alexandre Nassif": [2, 0],
-    "Andres Vera": [1, 0],
-    "Bruno Henrique": [3, 1],
-    "Camilo Eiras Thomas": [1, 0],
-    "Carolina Argento": [2, 0],
-    "Cesar Santos": [3, 0],
-    "David": [5, 0],
-    "Drinho": [3, 1],
-    "Fabio Scaringella": [3, 0],
-    "Gabriel Portella": [2, 0],
-    "Igor Bammesberger": [1, 0],
-    "Joao Ajaj": [3, 0],
-    "Juliana ajaj": [1, 1],
-    "Pepo Costa": [3, 1],
-    "Polvo Fernando": [2, 0]
+  "35": {
+    "Alexandre Nassif": [
+      2,
+      0
+    ],
+    "Andres Vera": [
+      1,
+      0
+    ],
+    "Bruno Henrique": [
+      3,
+      1
+    ],
+    "Camilo Eiras Thomas": [
+      1,
+      0
+    ],
+    "Carolina Argento": [
+      2,
+      0
+    ],
+    "Cesar Santos": [
+      3,
+      0
+    ],
+    "David": [
+      5,
+      0
+    ],
+    "Drinho": [
+      3,
+      1
+    ],
+    "Fabio Scaringella": [
+      3,
+      0
+    ],
+    "Gabriel Portella": [
+      2,
+      0
+    ],
+    "Igor Bammesberger": [
+      1,
+      0
+    ],
+    "Joao Ajaj": [
+      3,
+      0
+    ],
+    "Juliana ajaj": [
+      1,
+      1
+    ],
+    "Pepo Costa": [
+      3,
+      1
+    ],
+    "Polvo Fernando": [
+      2,
+      0
+    ]
   },
-  "36" :{
-    "Alexandre Nassif": [2, 0],
-    "Andres Vera": [2, 0],
-    "Bruno Henrique": [2, 0],
-    "Camilo Eiras Thomas": [3, 1],
-    "Carolina Argento": [3, 1],
-    "Cesar Santos": [2, 0],
-    "David": [2, 1],
-    "Drinho": [3, 1],
-    "Fabio Scaringella": [2, 0],
-    "Igor Bammesberger": [2, 1],
-    "Joao Ajaj": [2, 0],
-    "Juliana ajaj": [2, 0],
-    "Pepo Costa": [3, 2],
-    "Polvo Fernando": [2, 1]
+  "36": {
+    "Alexandre Nassif": [
+      0,
+      2
+    ],
+    "Andres Vera": [
+      0,
+      2
+    ],
+    "Bruno Henrique": [
+      0,
+      2
+    ],
+    "Camilo Thomas": [
+      1,
+      3
+    ],
+    "Carolina Argento": [
+      1,
+      3
+    ],
+    "Cesar Santos": [
+      0,
+      2
+    ],
+    "David": [
+      1,
+      2
+    ],
+    "Drinho": [
+      1,
+      3
+    ],
+    "Fabio Scaringella": [
+      0,
+      2
+    ],
+    "Gabriel Portella": null,
+    "Igor Bammesberger": [
+      1,
+      2
+    ],
+    "Joao Ajaj": [
+      0,
+      2
+    ],
+    "Juliana ajaj": [
+      0,
+      2
+    ],
+    "Pepo Costa": [
+      2,
+      3
+    ],
+    "Polvo Fernando": [
+      1,
+      2
+    ]
   }
 }
