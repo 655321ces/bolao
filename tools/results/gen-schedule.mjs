@@ -18,7 +18,10 @@ const PRINT_ONLY = process.argv.includes('--print');
 
 const FIXTURE_YEAR = 2026;
 const BRT_OFFSET_MIN = 180;            // BRT = UTC-3 → instante UTC = hora BRT + 3h
-const FINISH_OFFSETS_MIN = [115, 140]; // apito (~90+15+10) + 1 retry; absorve atraso do cron/acréscimos
+// Burst por término: do apito (~115 min) até +45 min, a cada 15 min. Várias
+// retentativas próximas pra sobreviver ao GitHub derrubar disparos agendados
+// (se um cair, o próximo pega em ~15 min, em vez de ~1h até o próximo jogo).
+const FINISH_OFFSETS_MIN = [115, 130, 145, 160];
 
 const START = '    # >>> agenda gerada (gen-schedule.mjs) — não edite à mão >>>';
 const END = '    # <<< agenda gerada <<<';
