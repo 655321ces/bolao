@@ -18,6 +18,18 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const DRY = process.argv.includes('--dry-run') || process.env.DRY_RUN === '1';
 const COMP = process.env.COMPETITION || 'WC';
 const KEY = process.env.FOOTBALL_API_KEY;
+const FORCE = process.env.FORCE_FETCH === '1';   // ignora a guarda de horário (disparo manual)
+
+const FIXTURE_YEAR = 2026;
+const BRT_OFFSET_MIN = 180;   // BRT = UTC-3 (sem horário de verão) → instante UTC = hora BRT + 3h
+const MIN_AGE_MIN = 95;       // só busca um jogo a partir de ~95 min após o início (perto do apito)
+
+/** Instante (ms UTC) do início do jogo a partir do "dd/mm HHh[MM]" do fixture (horário BRT). */
+function kickoffMs(date) {
+  const m = /^(\d{2})\/(\d{2})\s+(\d{1,2})h(\d{2})?$/.exec(date || '');
+  if (!m) return NaN;
+  return Date.UTC(FIXTURE_YEAR, +m[2] - 1, +m[1], +m[3], +m[4] || 0) + BRT_OFFSET_MIN * 60 * 1000;
+}
 
 const norm = (s) => String(s || '')
   .normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -46,6 +58,16 @@ async function main() {
     readJSON('data/results.json'),
     readJSON('tools/results/teams.aliases.json'),
   ]);
+
+  // guarda de horário: só vale a pena buscar se algum jogo já encerrado ainda não tem placar
+  if (!FORCE) {
+    const now = Date.now();
+    const pendente = Object.keys(fixtures).some((gid) => {
+      const ks = kickoffMs(fixtures[gid].date);
+      return !isNaN(ks) && (now - ks) >= MIN_AGE_MIN * 60 * 1000 && !results[gid];
+    });
+    if (!pendente) { console.log('Nenhum jogo encerrado pendente; nada a fazer.'); return; }
+  }
 
   // índices do fixture
   const fixtureByNorm = {};
