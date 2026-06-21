@@ -23,6 +23,7 @@ const FORCE = process.env.FORCE_FETCH === '1';   // ignora a guarda de horário 
 const FIXTURE_YEAR = 2026;
 const BRT_OFFSET_MIN = 180;   // BRT = UTC-3 (sem horário de verão) → instante UTC = hora BRT + 3h
 const MIN_AGE_MIN = 95;       // só busca um jogo a partir de ~95 min após o início (perto do apito)
+const MAX_AGE_MIN = 300;      // ...e até 5h depois (cobre prorrogação/pênaltis + lag; auto-silencia adiados)
 
 /** Instante (ms UTC) do início do jogo a partir do "dd/mm HHh[MM]" do fixture (horário BRT). */
 function kickoffMs(date) {
@@ -64,7 +65,9 @@ async function main() {
     const now = Date.now();
     const pendente = Object.keys(fixtures).some((gid) => {
       const ks = kickoffMs(fixtures[gid].date);
-      return !isNaN(ks) && (now - ks) >= MIN_AGE_MIN * 60 * 1000 && !results[gid];
+      if (isNaN(ks) || results[gid]) return false;
+      const age = now - ks;
+      return age >= MIN_AGE_MIN * 60 * 1000 && age <= MAX_AGE_MIN * 60 * 1000;
     });
     if (!pendente) { console.log('Nenhum jogo encerrado pendente; nada a fazer.'); return; }
   }

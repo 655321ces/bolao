@@ -2,11 +2,37 @@ name: Resultados automáticos
 
 on:
   schedule:
-    # Só na faixa UTC em que saem placares (~18:00–06:30 UTC; jogos 13h–1h BRT).
-    # De 5 em 5 min para pegar o resultado logo após o apito; a guarda no script
-    # zera o custo nas batidas sem jogo a fechar. Rever quando entrar o mata-mata.
-    - cron: '*/5 17-23 * * *'
-    - cron: '*/5 0-7 * * *'
+    # >>> agenda gerada (gen-schedule.mjs) — não edite à mão >>>
+    # 28 disparos/dia nos términos (UTC) derivados do fixtures.json. Regerar: node tools/results/gen-schedule.mjs
+    - cron: '20 0 * * *'
+    - cron: '55 0 * * *'
+    - cron: '20 1 * * *'
+    - cron: '25 1 * * *'
+    - cron: '50 1 * * *'
+    - cron: '55 1 * * *'
+    - cron: '20 2 * * *'
+    - cron: '25 2 * * *'
+    - cron: '50 2 * * *'
+    - cron: '55 2 * * *'
+    - cron: '20 3 * * *'
+    - cron: '55 3 * * *'
+    - cron: '20 4 * * *'
+    - cron: '55 4 * * *'
+    - cron: '20 5 * * *'
+    - cron: '55 5 * * *'
+    - cron: '20 6 * * *'
+    - cron: '55 17 * * *'
+    - cron: '20 18 * * *'
+    - cron: '55 18 * * *'
+    - cron: '20 19 * * *'
+    - cron: '55 20 * * *'
+    - cron: '20 21 * * *'
+    - cron: '55 21 * * *'
+    - cron: '20 22 * * *'
+    - cron: '55 22 * * *'
+    - cron: '20 23 * * *'
+    - cron: '55 23 * * *'
+    # <<< agenda gerada <<<
   workflow_dispatch:
     inputs:
       dry_run:

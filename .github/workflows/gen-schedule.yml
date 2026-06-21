@@ -1,0 +1,20 @@
+name: Gerar agenda (resultados)
+
+# Roda o gerador e IMPRIME o bloco de cron derivado do fixtures.json.
+# Não commita (o GITHUB_TOKEN não pode editar arquivos de workflow): copie o
+# bloco do log para o schedule: do results.yml (entre as sentinelas) e commite
+# pela conta dona. Use quando adicionar os fixtures do mata-mata.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  gerar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Imprimir bloco de cron
+        run: node tools/results/gen-schedule.mjs --print
