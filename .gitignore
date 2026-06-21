@@ -1,3 +1,6 @@
 .DS_Store
 Thumbs.db
 *.log
+
+# Dumps de páginas do bolaogratis (dados pessoais; usados só para calibração local)
+htmlbolaogratis.txt
