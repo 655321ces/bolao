@@ -50,22 +50,8 @@ function knownCanonicals() {
   return set;
 }
 
-/** Faz parse de "Nome 2 x 1" / "Nome 2x1" / "Nome 2 X 1" / "Nome 2×1" / "Nome" */
-function parseLine(line) {
-  const raw = line.trim();
-  if (!raw) return null; // linha vazia ignorada
-  // captura placar no fim: dígitos sep dígitos
-  const m = raw.match(/^(.*?)[\s]+(\d+)\s*[x×X]\s*(\d+)\s*$/);
-  if (m) {
-    return { name: m[1].trim(), bet: [parseInt(m[2], 10), parseInt(m[3], 10)] };
-  }
-  // sem placar reconhecido: pode ser só nome (null) OU placar malformado
-  // heurística: se tem dígito no fim mas não casou o padrão → malformado
-  if (/\d/.test(raw.replace(/^[^\d]*/, ''))) {
-    return { name: raw, bet: undefined, malformed: true };
-  }
-  return { name: raw, bet: null };
-}
+/* parseLine, mergeGameBets, sortByName e sortByGameId vêm de engine.js
+   (carregado antes deste arquivo), garantindo saída idêntica ao userscript. */
 
 /* ---------------- Modo: apostas ---------------- */
 function renderBetsMode(root) {
@@ -90,9 +76,8 @@ function processBets() {
   const out = $('#out');
   out.innerHTML = '';
 
-  const gameBets = {};        // canonical -> [h,a] | null
+  const entries = [];         // {name, bet} válidos (sem malformados)
   const issues = [];          // {type, msg}
-  const seenScreen = {};      // canonical -> nome original que definiu a aposta
 
   lines.forEach((line, i) => {
     const p = parseLine(line);
@@ -100,19 +85,18 @@ function processBets() {
     if (p.malformed) { issues.push({ type: 'bad', msg: `Linha ${i + 1}: placar malformado em "${line.trim()}"` }); return; }
     const canon = canonical(p.name, DATA.aliases);
     if (!known.has(canon)) issues.push({ type: 'warn', msg: `Linha ${i + 1}: nome não reconhecido "${p.name}"${canon !== p.name ? ` → ${canon}` : ''} (novo participante? confira a grafia)` });
-
-    if (!(canon in gameBets)) { gameBets[canon] = p.bet; seenScreen[canon] = p.name; return; }
-    const existing = gameBets[canon];
-    if (existing == null) { if (p.bet != null) { gameBets[canon] = p.bet; seenScreen[canon] = p.name; } }
-    else if (p.bet == null) { /* mantém */ }
-    else if (existing[0] === p.bet[0] && existing[1] === p.bet[1]) { /* igual */ }
-    else issues.push({ type: 'conflict', msg: `CONFLITO: ${canon} no jogo ${gid} — "${seenScreen[canon]}" ${existing[0]}x${existing[1]} vs "${p.name}" ${p.bet[0]}x${p.bet[1]}` });
+    entries.push({ name: p.name, bet: p.bet });
   });
+
+  // merge (alias, null-vs-aposta, conflito) — mesma lógica do userscript
+  const { gameBets, conflicts } = mergeGameBets(entries, DATA.aliases, gid);
+  conflicts.forEach(c => issues.push({ type: 'conflict',
+    msg: `CONFLITO: ${c.canonical} no jogo ${c.gameId} — "${c.a.name}" ${c.a.bet[0]}x${c.a.bet[1]} vs "${c.b.name}" ${c.b.bet[0]}x${c.b.bet[1]}` }));
 
   // monta bets.json completo atualizado
   const updated = JSON.parse(JSON.stringify(DATA.bets));
-  updated[gid] = sortObj(gameBets);
-  const json = JSON.stringify(sortGames(updated), null, 2);
+  updated[gid] = gameBets;
+  const json = JSON.stringify(sortByGameId(updated), null, 2);
 
   renderIssues(out, issues);
   const nNomes = Object.keys(gameBets).length;
@@ -164,24 +148,13 @@ function processResult() {
   }
   const updated = JSON.parse(JSON.stringify(DATA.results));
   updated[gid] = [parseInt(rhRaw, 10), parseInt(raRaw, 10)];
-  const json = JSON.stringify(sortGames(updated), null, 2);
+  const json = JSON.stringify(sortByGameId(updated), null, 2);
   const f = DATA.fixtures[gid];
   out.append(el('p', { class: 'small muted' }, `${f.home} ${updated[gid][0]}x${updated[gid][1]} ${f.away}. Substitua TODO o conteúdo de data/results.json pelo texto abaixo.`));
   out.append(jsonOutput(json));
 }
 
 /* ---------------- helpers de saída ---------------- */
-function sortObj(obj) {
-  const o = {};
-  Object.keys(obj).sort((a, b) => a.localeCompare(b, 'pt')).forEach(k => o[k] = obj[k]);
-  return o;
-}
-function sortGames(obj) {
-  const o = {};
-  Object.keys(obj).sort((a, b) => +a - +b).forEach(k => o[k] = obj[k]);
-  return o;
-}
-
 function renderIssues(out, issues) {
   if (!issues.length) {
     out.append(el('div', { class: 'banner ok' }, '✓ Sem problemas detectados.'));

@@ -112,6 +112,79 @@ function resolveBets(rawBets, aliases) {
   return { bets: out, conflicts };
 }
 
+/* ---------------- Lançamento de apostas (parse + merge) ----------------
+   Puro, sem DOM. Reutilizado por admin.js (a partir de texto colado) e pelo
+   userscript de palpites (a partir de dados estruturados extraídos do HTML),
+   garantindo saída idêntica nos dois caminhos. */
+
+/** Faz parse de "Nome 2 x 1" / "Nome 2x1" / "Nome 2 X 1" / "Nome 2×1" / "Nome".
+ *  Retorna {name, bet:[h,a]} | {name, bet:null} | {name, malformed:true} | null (linha vazia). */
+function parseLine(line) {
+  const raw = String(line).trim();
+  if (!raw) return null; // linha vazia ignorada
+  // captura placar no fim: dígitos sep dígitos
+  const m = raw.match(/^(.*?)[\s]+(\d+)\s*[x×X]\s*(\d+)\s*$/);
+  if (m) {
+    return { name: m[1].trim(), bet: [parseInt(m[2], 10), parseInt(m[3], 10)] };
+  }
+  // sem placar reconhecido: pode ser só nome (null) OU placar malformado.
+  // heurística: se sobra dígito após remover o prefixo não-numérico → malformado
+  if (/\d/.test(raw.replace(/^[^\d]*/, ''))) {
+    return { name: raw, bet: undefined, malformed: true };
+  }
+  return { name: raw, bet: null };
+}
+
+/** Ordena as chaves de um objeto por nome (locale pt) — para saída estável. */
+function sortByName(obj) {
+  const o = {};
+  Object.keys(obj).sort((a, b) => a.localeCompare(b, 'pt')).forEach(k => o[k] = obj[k]);
+  return o;
+}
+
+/** Ordena as chaves de um objeto por id numérico de jogo ("1".."72"). */
+function sortByGameId(obj) {
+  const o = {};
+  Object.keys(obj).sort((a, b) => +a - +b).forEach(k => o[k] = obj[k]);
+  return o;
+}
+
+/**
+ * Mescla as entradas de UM jogo num objeto canônico ordenado, com a MESMA
+ * semântica de resolveBets (null vs aposta → aposta; iguais → ok; diferentes
+ * → CONFLITO, mantém a 1ª vista). Processa a lista em ordem (canonical-keyed),
+ * preservando a precedência mesmo com nomes-de-tela repetidos.
+ * @param {Array<{name:string, bet:[number,number]|null}>} entries
+ * @param {object} aliases
+ * @param {string} gameId  - usado só para rotular conflitos
+ * @returns {{gameBets:object, conflicts:Array}}
+ */
+function mergeGameBets(entries, aliases, gameId = '_') {
+  const gameBets = {};     // canonical -> [h,a] | null
+  const seenScreen = {};   // canonical -> nome-de-tela que definiu a aposta atual
+  const conflicts = [];
+
+  for (const entry of entries) {
+    const name = entry.name;
+    const bet = entry.bet == null ? null : entry.bet;
+    const canon = canonical(name, aliases);
+
+    if (!(canon in gameBets)) { gameBets[canon] = bet; seenScreen[canon] = name; continue; }
+    const existing = gameBets[canon];
+    if (existing == null) {
+      if (bet != null) { gameBets[canon] = bet; seenScreen[canon] = name; }
+    } else if (bet == null) {
+      // mantém aposta existente
+    } else if (existing[0] === bet[0] && existing[1] === bet[1]) {
+      // iguais: ok
+    } else {
+      conflicts.push({ gameId, canonical: canon, a: { name: seenScreen[canon], bet: existing }, b: { name, bet } });
+    }
+  }
+
+  return { gameBets: sortByName(gameBets), conflicts };
+}
+
 /**
  * Calcula o ranking geral e os detalhes por participante/jogo.
  *
@@ -290,7 +363,57 @@ function runTiebreakTests() {
   return failures;
 }
 
+/**
+ * Testes SINTÉTICOS de parseLine + mergeGameBets (entradas fixas inventadas,
+ * independentes de bets.json). Protegem o caminho de lançamento usado tanto
+ * pelo admin (texto colado) quanto pelo userscript (DOM estruturado).
+ */
+function runParseMergeTests() {
+  const failures = [];
+  const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+  // --- parseLine ---
+  const pcases = [
+    ['Alexandre Nassif 1x1', { name: 'Alexandre Nassif', bet: [1, 1] }],
+    ['Andres Vera 1 x 2', { name: 'Andres Vera', bet: [1, 2] }],
+    ['Foo 2X3', { name: 'Foo', bet: [2, 3] }],
+    ['Bar 0×4', { name: 'Bar', bet: [0, 4] }],            // separador unicode ×
+    ['Camilo Thomas', { name: 'Camilo Thomas', bet: null }],
+    ['', null],                                           // linha vazia
+  ];
+  for (const [input, want] of pcases) {
+    const got = parseLine(input);
+    if (!eq(got, want)) failures.push(`parseLine(${JSON.stringify(input)}): esperado ${JSON.stringify(want)}, obtido ${JSON.stringify(got)}`);
+  }
+  // malformados (têm dígito mas não casam o padrão "H x A")
+  for (const bad of ['Baz 1x', 'Maria 12', 'Fulano 3 x']) {
+    const got = parseLine(bad);
+    if (!(got && got.malformed)) failures.push(`parseLine(${JSON.stringify(bad)}): esperado malformed, obtido ${JSON.stringify(got)}`);
+  }
+
+  // --- mergeGameBets (com aliases) ---
+  const aliases = { 'Xandó Acústico': 'Alexandre Nassif' };
+  // 1) null vs aposta → vale a aposta (uma conta palpitou, a outra não)
+  let r = mergeGameBets([{ name: 'Xandó Acústico', bet: null }, { name: 'Alexandre Nassif', bet: [2, 1] }], aliases, '1');
+  if (!eq(r.gameBets, { 'Alexandre Nassif': [2, 1] }) || r.conflicts.length) failures.push(`merge null-vs-aposta: ${JSON.stringify(r)}`);
+  // 2) apostas iguais → mantém, sem conflito
+  r = mergeGameBets([{ name: 'Alexandre Nassif', bet: [2, 1] }, { name: 'Xandó Acústico', bet: [2, 1] }], aliases, '1');
+  if (!eq(r.gameBets, { 'Alexandre Nassif': [2, 1] }) || r.conflicts.length) failures.push(`merge iguais: ${JSON.stringify(r)}`);
+  // 3) apostas diferentes → CONFLITO (mantém a 1ª)
+  r = mergeGameBets([{ name: 'Alexandre Nassif', bet: [2, 1] }, { name: 'Xandó Acústico', bet: [1, 1] }], aliases, '7');
+  if (!eq(r.gameBets, { 'Alexandre Nassif': [2, 1] }) || r.conflicts.length !== 1 || r.conflicts[0].gameId !== '7') failures.push(`merge conflito: ${JSON.stringify(r)}`);
+  // 4) ordenação por nome (locale pt)
+  r = mergeGameBets([{ name: 'Bruno', bet: [1, 0] }, { name: 'Ana', bet: [0, 0] }], {}, '1');
+  if (Object.keys(r.gameBets).join(',') !== 'Ana,Bruno') failures.push(`merge ordenação: ${JSON.stringify(Object.keys(r.gameBets))}`);
+
+  return failures;
+}
+
 // Exporta para uso em browser (global) e em Node (module) para testes
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { sign, score, canonical, resolveBets, computeStandings, rankCompare, assignPositions, runSelfTests, runTiebreakTests };
+  module.exports = {
+    sign, score, canonical, resolveBets, computeStandings, rankCompare, assignPositions,
+    parseLine, sortByName, sortByGameId, mergeGameBets,
+    runSelfTests, runTiebreakTests, runParseMergeTests
+  };
 }

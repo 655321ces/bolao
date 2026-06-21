@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<!-- Dev-only: valida o extrator/casamento do userscript contra um trecho do HTML real.
+     Servir o projeto e abrir /tools/userscript/_selftest.html. Não vai para produção. -->
+<html lang="pt-BR">
+<head><meta charset="utf-8"><title>Self-test userscript</title></head>
+<body>
+<pre id="log">rodando…</pre>
+
+<!-- trecho representativo do HTML real da página de palpites (jogo Japão x Tunísia) -->
+<div class="rounded-2xl">
+  <div class="flex items-center justify-between gap-3 pb-3 mb-3 border-b border-slate-100">
+    <div class="flex items-center gap-2 min-w-0">
+      <span class="text-base flex-shrink-0">🇯🇵</span>
+      <span class="font-semibold text-slate-900 truncate">Japão</span>
+      <span class="text-slate-400 px-1">×</span>
+      <span class="font-semibold text-slate-900 truncate">Tunísia</span>
+      <span class="text-base flex-shrink-0">🇹🇳</span>
+    </div>
+    <div class="text-right flex-shrink-0"><div class="text-xs text-slate-500">21/06 · 01:00</div></div>
+  </div>
+  <ul class="divide-y divide-slate-100">
+    <li class="flex items-center justify-between gap-3 py-2">
+      <div class="flex items-center gap-2 min-w-0"><img class="w-7 h-7"><span class="text-sm text-slate-800 truncate">Alexandre Nassif</span></div>
+      <div class="text-sm flex items-center gap-2 flex-shrink-0"><span class="font-semibold tabular-nums text-slate-900">2 × 0</span></div>
+    </li>
+    <li class="flex items-center justify-between gap-3 py-2">
+      <div class="flex items-center gap-2 min-w-0"><img class="w-7 h-7"><span class="text-sm text-slate-800 truncate">Camilo Eiras Thomas</span></div>
+      <div class="text-sm flex items-center gap-2 flex-shrink-0"><span class="font-semibold tabular-nums text-slate-900">3 × 1</span></div>
+    </li>
+    <li class="flex items-center justify-between gap-3 py-2">
+      <div class="flex items-center gap-2 min-w-0"><img class="w-7 h-7"><span class="text-sm text-slate-800 truncate">Gabriel Portella</span></div>
+      <div class="text-sm flex items-center gap-2 flex-shrink-0"><span class="text-xs text-slate-400 italic">não palpitou</span></div>
+    </li>
+    <li class="flex items-center justify-between gap-3 py-2">
+      <div class="flex items-center gap-2 min-w-0"><img class="w-7 h-7"><span class="text-sm text-slate-800 truncate">Cesar Santos</span></div>
+      <div class="text-sm flex items-center gap-2 flex-shrink-0"><span class="font-semibold tabular-nums text-slate-900">2 × 0</span></div>
+    </li>
+  </ul>
+</div>
+
+<!-- engine real, depois o userscript (que expõe window.__bolaoTest fora do site) -->
+<script src="../../engine.js"></script>
+<script src="bolao-palpites.user.js"></script>
+<script>
+(async () => {
+  const log = (s) => document.getElementById('log').textContent = s;
+  const fails = [];
+  const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  const T = window.__bolaoTest;
+  try {
+    if (!T) throw new Error('window.__bolaoTest não exposto');
+    const base = '../../data/';
+    const [fixtures, aliases, bets] = await Promise.all(
+      ['fixtures.json','aliases.json','bets.json'].map(f => fetch(base+f).then(r=>r.json())));
+
+    const ex = T.extractPalpites();
+    if (ex.home !== 'Japão') fails.push('home esperado Japão, obtido ' + ex.home);
+    if (ex.away !== 'Tunísia') fails.push('away esperado Tunísia, obtido ' + ex.away);
+    if (ex.dateDDMM !== '21/06') fails.push('data esperada 21/06, obtida ' + ex.dateDDMM);
+    if (ex.entries.length !== 4) fails.push('esperado 4 entries, obtido ' + ex.entries.length);
+    const gab = ex.entries.find(e => e.name === 'Gabriel Portella');
+    if (!gab || gab.bet !== null) fails.push('Gabriel deveria ser null (não palpitou): ' + JSON.stringify(gab));
+
+    const m = T.matchFixture(ex.home, ex.away, ex.dateDDMM, fixtures);
+    if (!m || m.gid !== '36') fails.push('matchFixture esperado gid 36, obtido ' + JSON.stringify(m));
+    if (!m || m.reversed !== true) fails.push('reversed esperado true, obtido ' + (m && m.reversed));
+
+    const res = T.buildGameBets(ex, fixtures, aliases, bets);
+    if (res.error) fails.push('buildGameBets erro: ' + res.error);
+    else {
+      if (res.gid !== '36') fails.push('res.gid esperado 36, obtido ' + res.gid);
+      // reorientação: site Japão(2)×Tunísia(0) -> fixture Tunísia×Japão = [0,2]
+      if (!eq(res.gameBets['Alexandre Nassif'], [0,2])) fails.push('Alexandre reorientado esperado [0,2], obtido ' + JSON.stringify(res.gameBets['Alexandre Nassif']));
+      // alias: Camilo Eiras Thomas -> Camilo Thomas, site 3×1 -> [1,3]
+      if (!('Camilo Thomas' in res.gameBets)) fails.push('alias Camilo Thomas ausente (chaves: ' + Object.keys(res.gameBets).join(',') + ')');
+      else if (!eq(res.gameBets['Camilo Thomas'], [1,3])) fails.push('Camilo reorientado esperado [1,3], obtido ' + JSON.stringify(res.gameBets['Camilo Thomas']));
+      if (res.gameBets['Gabriel Portella'] !== null) fails.push('Gabriel no gameBets deveria ser null');
+    }
+
+    log((fails.length ? '✗ FALHAS:\n' + fails.join('\n') : '✓ TODOS OS TESTES PASSARAM')
+      + '\n\n--- gameBets gerado ---\n' + JSON.stringify(res && res.gameBets, null, 2));
+    window.__testResult = { ok: fails.length === 0, fails, gameBets: res && res.gameBets, reversed: res && res.reversed, gid: res && res.gid };
+  } catch (e) {
+    log('✗ ERRO: ' + (e.message || e));
+    window.__testResult = { ok: false, error: String(e.message || e) };
+  }
+})();
+</script>
+</body>
+</html>

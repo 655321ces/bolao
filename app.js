@@ -95,14 +95,15 @@ function criteriaChips(d) {
 function renderSelfTest() {
   const unit = runSelfTests();
   const tie = runTiebreakTests();
+  const pm = runParseMergeTests();
   const box = $('#selftest');
-  if (unit.length === 0 && tie.length === 0) {
+  if (unit.length === 0 && tie.length === 0 && pm.length === 0) {
     box.innerHTML = '';
-    box.append(el('div', { class: 'banner ok' }, '✓ Self-test: motor de pontuação e cascata de desempate conferem (testes sintéticos).'));
+    box.append(el('div', { class: 'banner ok' }, '✓ Self-test: motor de pontuação, cascata de desempate e parse/merge conferem (testes sintéticos).'));
     return true;
   }
   const ul = el('ul');
-  [...unit, ...tie].forEach(f => ul.append(el('li', {}, f)));
+  [...unit, ...tie, ...pm].forEach(f => ul.append(el('li', {}, f)));
   box.innerHTML = '';
   box.append(el('div', { class: 'banner fail' },
     el('strong', {}, '✗ Self-test FALHOU — o ranking pode estar incorreto:'), ul));
