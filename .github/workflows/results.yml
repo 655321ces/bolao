@@ -1,0 +1,48 @@
+name: Resultados automáticos
+
+on:
+  # Cron desativado até o 1º dry-run validar a fonte + o mapa de times.
+  # Depois disso, descomente para rodar sozinho a cada 30 min:
+  # schedule:
+  #   - cron: '*/30 * * * *'   # melhor-esforço do GitHub (horário UTC)
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Só simular (mostra o casamento nos logs, não commita)'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: resultados
+  cancel-in-progress: false
+
+jobs:
+  resultados:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Buscar e atualizar resultados
+        env:
+          FOOTBALL_API_KEY: ${{ secrets.FOOTBALL_API_KEY }}
+          DRY_RUN: ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '1' || '0' }}
+        run: node tools/results/fetch.mjs
+
+      - name: Commitar se mudou
+        run: |
+          if [ -n "$(git status --porcelain data/results.json)" ]; then
+            git config user.name "bolao-bot"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add data/results.json
+            git commit -m "Resultados automáticos (football-data.org)"
+            git push
+          else
+            echo "Sem mudanças em results.json."
+          fi
