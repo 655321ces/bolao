@@ -12,5 +12,5 @@
    ============================================================ */
 window.SUPABASE_CONFIG = {
   url: 'https://hcdyimqnrkxtjwvptwgy.supabase.co',
-  anonKey: 'CeyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjZHlpbXFucmt4dGp3dnB0d2d5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNzUwMDgsImV4cCI6MjA5NzY1MTAwOH0.taJgZdUpeenyAEliMCKJbn9eNvAgximdwcR70uosgYo',
+  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjZHlpbXFucmt4dGp3dnB0d2d5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwNzUwMDgsImV4cCI6MjA5NzY1MTAwOH0.taJgZdUpeenyAEliMCKJbn9eNvAgximdwcR70uosgYo',
 };
