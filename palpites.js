@@ -299,6 +299,7 @@ async function init() {
 
   try {
     await refreshSession();
+    if (USER) await sb.rpc('ensure_profile'); // recria o profile se faltar (auto-cura)
     await loadStatic();
     await loadGames();
     await loadMyBets();

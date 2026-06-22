@@ -51,6 +51,29 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
 
+-- Auto-cura: o trigger acima só roda no 1º cadastro. Este RPC é chamado a cada
+-- login (palpites.js) e recria o profile se ele faltar (ex.: linha apagada à mão),
+-- restaurando o nome canônico já reivindicado no roster. Idempotente.
+create or replace function public.ensure_profile()
+returns void
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  insert into public.profiles (id, display_name)
+  values (
+    auth.uid(),
+    coalesce(
+      (select r.canonical_name from public.roster r where r.claimed_by = auth.uid()),
+      (select coalesce(u.raw_user_meta_data->>'full_name', u.raw_user_meta_data->>'name',
+                       split_part(coalesce(u.email, 'participante'), '@', 1))
+         from auth.users u where u.id = auth.uid())
+    )
+  )
+  on conflict (id) do nothing;
+end;
+$$;
+
 -- ---------- games: semeado de fixtures.json (ver seed-games.sql) ----------
 create table if not exists public.games (
   id       int primary key,
