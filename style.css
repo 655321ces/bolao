@@ -47,6 +47,13 @@ nav.tabs button {
 }
 nav.tabs button:hover { color: var(--text); }
 nav.tabs button.active { background: var(--accent); color: #0a0d10; border-color: var(--accent); font-weight: 600; }
+/* Aba-link (vai para palpites.html): destaque verde p/ sinalizar a ação */
+nav.tabs a.tab-link {
+  background: var(--surface); color: var(--accent); border: 1px solid var(--accent-dim);
+  padding: 8px 14px; border-radius: 999px; font-size: .85rem; cursor: pointer;
+  transition: .15s; text-decoration: none; display: inline-block; font-weight: 600;
+}
+nav.tabs a.tab-link:hover { background: var(--accent); color: #0a0d10; border-color: var(--accent); }
 
 .controls { margin: 0 0 14px; }
 select, input[type=text], textarea {
