@@ -133,8 +133,6 @@ tr.clickable:hover td { background: var(--surface-2); }
 .scorerow .track > i { display: block; height: 100%; }
 .scorerow .spct { min-width: 34px; text-align: right; font-size: .8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 .scorerow .scount { min-width: 20px; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
-.rulerow { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: .9rem; }
-.rulerow:last-child { border-bottom: none; }
 
 a.backlink { color: var(--accent); cursor: pointer; font-size: .85rem; display: inline-block; margin-bottom: 10px; }
 

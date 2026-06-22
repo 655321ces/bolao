@@ -270,20 +270,6 @@ function scoreBlock(f, agg) {
   return card;
 }
 
-/* Bloco "Como pontua este jogo": regras vindas do config. */
-function scoringRulesBlock(cfg) {
-  if (!cfg) return el('span');
-  const row = (label, val) => el('div', { class: 'rulerow' },
-    el('span', {}, label), el('span', { class: 'pill out-home' }, val));
-  return el('div', { class: 'card' },
-    el('div', { class: 'block-head' }, el('strong', {}, 'Como pontua este jogo')),
-    row('Placar exato', String(cfg.exact)),
-    row('Acertar o vencedor (direção)', `+${cfg.winner}`),
-    row('Saldo de gols (com direção certa)', `+${cfg.goal_difference}`),
-    row('Bônus gol do mandante', `+${cfg.goal_bonus_home}`),
-    row('Bônus gol do visitante', `+${cfg.goal_bonus_away}`));
-}
-
 function viewGame(root) {
   // ordena por horário real (os ids da FIFA não são cronológicos); empate/sem data cai no id
   const gameIds = Object.keys(DATA.fixtures).sort((a, b) => {
@@ -319,7 +305,6 @@ function viewGame(root) {
     root.append(outcomeBlock(f, agg));
     root.append(scoreBlock(f, agg));
   }
-  root.append(scoringRulesBlock(DATA.config));
 
   const rows = Object.keys(game).map(name => ({ name, ...game[name] }));
   rows.sort((a, b) => b.points - a.points || a.name.localeCompare(b.name, 'pt'));
