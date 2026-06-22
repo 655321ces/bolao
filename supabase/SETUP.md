@@ -86,5 +86,5 @@ cair, ele lê o último export.
 
 ## O que pode ser aposentado depois (não agora)
 
-`tools/userscript/` e a aba de apostas do `admin.html` (import do bolaogratis) ficam como
-fallback durante o paralelo. A automação de **resultados** continua **igual** — não muda.
+O userscript de import do bolaogratis (`tools/userscript/`) fica como fallback durante o
+paralelo. A automação de **resultados** continua **igual** — não muda.

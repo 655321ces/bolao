@@ -1,6 +1,6 @@
 /* ============================================================
    Bolão Copa 2026 — Motor de pontuação e identidade
-   Funções puras, sem DOM, sem storage. Reutilizado por app.js e admin.js.
+   Funções puras, sem DOM, sem storage. Reutilizado por app.js e palpites.js.
    ============================================================ */
 
 /** sinal(x): 1 se positivo, 0 se zero, -1 se negativo */
@@ -113,9 +113,9 @@ function resolveBets(rawBets, aliases) {
 }
 
 /* ---------------- Lançamento de apostas (parse + merge) ----------------
-   Puro, sem DOM. Reutilizado por admin.js (a partir de texto colado) e pelo
-   userscript de palpites (a partir de dados estruturados extraídos do HTML),
-   garantindo saída idêntica nos dois caminhos. */
+   Puro, sem DOM. Reutilizado pelo userscript de palpites (a partir de dados
+   estruturados extraídos do HTML do bolaogratis), garantindo saída idêntica
+   ao fluxo manual. */
 
 /** Faz parse de "Nome 2 x 1" / "Nome 2x1" / "Nome 2 X 1" / "Nome 2×1" / "Nome".
  *  Retorna {name, bet:[h,a]} | {name, bet:null} | {name, malformed:true} | null (linha vazia). */

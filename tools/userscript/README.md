@@ -49,6 +49,6 @@ O commit precisa de um token com permissão de escrita **só neste repositório*
 
 - **Times com grafia diferente do site** já estão mapeados no script (`TEAM_ALIASES`): *Tchéquia → Rep. Tcheca*,
   *Estados Unidos → EUA*, *Bósnia e Herzegovina → Bósnia*. Se aparecer um time novo que não casa, adicione ali.
-- A lógica de merge/alias/conflito é a mesma do `engine.js`/`admin.html` (reusada via `@require`), então a saída
+- A lógica de merge/alias/conflito é a mesma do `engine.js` (reusada via `@require`), então a saída
   é idêntica ao fluxo manual.
 - `_selftest.html` (nesta pasta) valida o extrator contra um trecho do HTML real — ferramenta de desenvolvimento, não usada em produção.

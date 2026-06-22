@@ -6,10 +6,10 @@ App 100% estático (HTML + CSS + JS puro, sem build, sem dependências) que calc
 
 ```
 index.html      Ranking público (4 telas: ranking, participante, jogo, rodada)
-admin.html      Lançamento jogo a jogo (gera JSON para copiar/commitar)
+palpites.html   Entrada de palpites (login Google + Supabase)
 engine.js       Motor de pontuação + identidade (aliases) + self-tests. Sem DOM.
 app.js          UI pública
-admin.js        UI do admin
+palpites.js     UI da entrada de palpites
 style.css       Estilos (mobile-first)
 data/           fixtures.json, config.json, aliases.json, results.json, bets.json
 tools/serve.ps1 Servidor estático local só para desenvolvimento (não usado em produção)
@@ -48,8 +48,6 @@ Ao abrir `index.html`, um banner verde confirma que os 6 testes unitários do mo
 
 ## Lançar dados (operador)
 
-Em `admin.html`:
-- **Apostas**: escolha o jogo, cole uma linha por pessoa (`Nome H x A`; só o nome = não palpitou). Aceita separadores `x`, `X`, `×`. O app resolve aliases, valida e gera o `bets.json` completo para copiar.
-- **Resultado**: escolha o jogo, informe os gols, copie o `results.json` gerado.
-
-Cole o JSON gerado por cima do arquivo correspondente em `data/` e dê commit.
+- **Apostas**: vêm da `palpites.html` (login Google + Supabase) ou do userscript de import do bolaogratis (`tools/userscript/`); a ponte de export grava `data/bets.json`.
+- **Resultados**: entram pela automação (football-data.org + Cloudflare Worker → `data/results.json`).
+- **Correção manual**: editar o `data/*.json` correspondente e dar commit.

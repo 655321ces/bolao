@@ -55,6 +55,11 @@ select, input[type=text], textarea {
 }
 label.field { display: block; font-size: .8rem; color: var(--muted); margin: 0 0 5px; }
 
+/* Inputs de placar: sem as setinhas do number */
+input.score-input { -moz-appearance: textfield; appearance: textfield; }
+input.score-input::-webkit-outer-spin-button,
+input.score-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
 /* Podium */
 .podium { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; align-items: end; margin-bottom: 16px; }
 .podium .slot { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 8px; text-align: center; }

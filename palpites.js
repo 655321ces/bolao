@@ -45,6 +45,8 @@ let ROSTER = [];     // [{canonical_name, claimed_by}]
 let MYNAME = null;   // nome canônico já reivindicado por mim (ou null)
 let HISTBETS = {};   // data/bets.json (histórico) — fallback dos jogos já fechados
 let ALIASES = {};    // data/aliases.json — resolve nomes-de-tela para o canônico
+let RESULTS = {};    // data/results.json — resultados reais (pontuação dos fechados)
+let CONFIG = null;   // data/config.json — regras de pontuação (engine.score)
 
 /* ---------------- config / cliente ---------------- */
 function configMissing() {
@@ -114,12 +116,14 @@ async function loadMyBets() {
 // Independe de login; serve de fallback para mostrar o palpite em jogos já fechados.
 async function loadStatic() {
   try {
-    const [b, a] = await Promise.all([
+    const [b, a, r, c] = await Promise.all([
       fetch('data/bets.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : {}),
       fetch('data/aliases.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : {}),
+      fetch('data/results.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : {}),
+      fetch('data/config.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : null),
     ]);
-    HISTBETS = b || {}; ALIASES = a || {};
-  } catch { HISTBETS = {}; ALIASES = {}; }
+    HISTBETS = b || {}; ALIASES = a || {}; RESULTS = r || {}; CONFIG = c;
+  } catch { HISTBETS = {}; ALIASES = {}; RESULTS = {}; CONFIG = null; }
 }
 
 // meu palpite para um jogo: Supabase tem prioridade; senão cai no histórico
@@ -135,6 +139,51 @@ function myBetFor(g) {
     }
   }
   return null;
+}
+
+/* ---------------- pontuação dos jogos fechados ----------------
+   Mesma semântica de computeStandings/perGame (engine.js incluído no HTML).
+   fmtBet/breakdownText/criteriaChips são cópias diretas de app.js. */
+function fmtBet(bet) {
+  return bet == null ? '—' : `${bet[0]}x${bet[1]}`;
+}
+
+function breakdownText(d) {
+  if (d.bet == null) return 'não palpitou';
+  if (d.exact) return 'placar exato';
+  const parts = [];
+  const b = d.breakdown;
+  if (b.winner) parts.push(`direção +${b.winner}`);
+  if (b.goal_difference) parts.push(`saldo +${b.goal_difference}`);
+  if (b.goal_bonus_home) parts.push(`gol mandante +${b.goal_bonus_home}`);
+  if (b.goal_bonus_away) parts.push(`gol visitante +${b.goal_bonus_away}`);
+  return parts.length ? parts.join(' · ') : 'sem acerto';
+}
+
+function criteriaChips(d) {
+  const wrap = el('span', { class: 'chips' });
+  if (d.pending || d.bet == null) return wrap;
+  if (d.exact) {
+    wrap.append(el('span', { class: 'pill exact', title: 'Cravou o placar' }, 'Exato'));
+    return wrap;
+  }
+  if (d.tendencia) wrap.append(el('span', { class: 'pill tend', title: 'Acertou a direção (vitória/empate)' }, 'Tendência'));
+  if (d.golsVencedor) wrap.append(el('span', { class: 'pill gv', title: 'Acertou os gols de quem venceu' }, 'Gols venc.'));
+  return wrap;
+}
+
+/* Detalhe de pontuação de um palpite num jogo (engine.score + flags de desempate),
+   espelhando o que computeStandings monta por jogo. */
+function detailFor(bet, result, config) {
+  if (result == null || !config) return { bet, result: null, pending: true };
+  const s = score(bet, result, config);
+  let tendencia = false, golsVencedor = false;
+  if (bet != null) {
+    const [ph, pa] = bet, [rh, ra] = result;
+    tendencia = sign(ph - pa) === sign(rh - ra);
+    golsVencedor = rh !== ra && ((rh > ra && ph === rh) || (ra > rh && pa === ra));
+  }
+  return { bet, result, points: s.points, exact: s.exact, tendencia, golsVencedor, breakdown: s.breakdown, pending: false };
 }
 
 async function loadRoster() {
@@ -221,17 +270,21 @@ function openGameCard(g) {
   const card = el('div', { class: 'card' });
   card.append(el('div', { class: 'meta' }, `Grupo ${g.grp} · Rodada ${g.round} · ${fmtBRT(g.kickoff)}`));
   const numStyle = 'width:48px;text-align:center';
-  const inH = el('input', { type: 'number', min: '0', max: '99', inputmode: 'numeric', style: numStyle, value: mine ? String(mine.home) : '' });
-  const inA = el('input', { type: 'number', min: '0', max: '99', inputmode: 'numeric', style: numStyle, value: mine ? String(mine.away) : '' });
   const status = el('span', { class: 'small muted' }, mine ? '✓ salvo' : '');
+  // auto-salva quando os dois lados estão preenchidos (guarda contra salvar pela metade)
+  const autoSave = () => {
+    if (inH.value.trim() !== '' && inA.value.trim() !== '') saveBet(g, inH, inA, status);
+  };
+  const inH = el('input', { type: 'number', min: '0', max: '99', inputmode: 'numeric', class: 'score-input', style: numStyle, value: mine ? String(mine.home) : '', onchange: autoSave });
+  const inA = el('input', { type: 'number', min: '0', max: '99', inputmode: 'numeric', class: 'score-input', style: numStyle, value: mine ? String(mine.away) : '', onchange: autoSave });
   const btn = el('button', { class: 'btn', onclick: () => saveBet(g, inH, inA, status) }, 'Salvar');
 
   card.append(el('div', { style: 'display:flex;align-items:center;gap:6px' },
-    flagImg(g.home),
-    el('span', { class: 'small', style: 'flex:1;text-align:right;min-width:0' }, g.home),
+    el('span', { class: 'small', style: 'flex:1;display:flex;align-items:center;justify-content:flex-end;gap:6px;min-width:0' },
+      flagImg(g.home), g.home),
     inH, el('span', { class: 'muted' }, '×'), inA,
-    el('span', { class: 'small', style: 'flex:1;text-align:left;min-width:0' }, g.away),
-    flagImg(g.away)
+    el('span', { class: 'small', style: 'flex:1;display:flex;align-items:center;justify-content:flex-start;gap:6px;min-width:0' },
+      g.away, flagImg(g.away))
   ));
   card.append(el('div', { class: 'admin-row', style: 'align-items:center;margin-top:8px' }, btn, status));
   return card;
@@ -239,10 +292,19 @@ function openGameCard(g) {
 
 function lockedRow(g) {
   const bet = myBetFor(g);
+  const result = RESULTS[g.id] || null;
+  const d = detailFor(bet, result, CONFIG);
+  const ptsCell = d.pending
+    ? el('td', { class: 'num' }, el('span', { class: 'pill pending' }, '—'))
+    : el('td', { class: 'num' }, el('span', { class: 'score-chip' + (d.points ? ' pts-strong' : ' muted') }, String(d.points)));
   return el('tr', {},
     el('td', {}, labelWithFlags(g),
-      el('div', { class: 'breakdown' }, `${fmtBRT(g.kickoff)} · fechado`)),
-    el('td', { class: 'num' }, bet ? `${bet[0]}x${bet[1]}` : '—')
+      el('div', { class: 'breakdown' }, `${fmtBRT(g.kickoff)} · fechado`),
+      d.pending ? null : el('div', { class: 'breakdown' }, breakdownText(d)),
+      criteriaChips(d)),
+    el('td', { class: 'num' }, fmtBet(bet)),
+    el('td', { class: 'num' }, result ? `${result[0]}x${result[1]}` : '—'),
+    ptsCell
   );
 }
 
@@ -296,11 +358,21 @@ function renderGames(root) {
   if (locked.length) {
     root.append(el('h2', { style: 'font-size:1rem;margin:18px 0 8px' }, `Fechados (${locked.length})`));
     const table = el('table');
-    table.append(el('thead', {}, el('tr', {}, el('th', {}, 'Jogo'), el('th', { class: 'num' }, 'Seu palpite'))));
+    table.append(el('thead', {}, el('tr', {},
+      el('th', {}, 'Jogo'),
+      el('th', { class: 'num' }, 'Palpite'),
+      el('th', { class: 'num' }, 'Resultado'),
+      el('th', { class: 'num' }, 'Pts')
+    )));
     const tb = el('tbody');
     locked.forEach(g => tb.append(lockedRow(g)));
     table.append(tb);
     root.append(table);
+    if (CONFIG) {
+      root.append(el('p', { class: 'small muted mt' },
+        `Pontuação: placar exato = ${CONFIG.exact}; direção +${CONFIG.winner}, saldo +${CONFIG.goal_difference}, `
+        + `gol mandante/visitante +${CONFIG.goal_bonus_home} (teto ${CONFIG.ceiling}).`));
+    }
   }
 }
 
