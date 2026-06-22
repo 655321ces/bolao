@@ -98,6 +98,13 @@ tr.clickable:hover td { background: var(--surface-2); }
 .pill.gv { background: rgba(120,170,255,.12); border-color: #4a6bbf; color: #8fb0ff; }
 .pill.pending { background: var(--surface-2); }
 .pill.zero { opacity: .6; }
+/* Resultado mandante/empate/visitante (view "Por jogo") */
+.out-home { color: var(--accent); }
+.out-draw { color: var(--gold); }
+.out-away { color: var(--bad); }
+.pill.out-home { background: rgba(46,204,113,.14); border-color: var(--accent-dim); color: var(--accent); }
+.pill.out-draw { background: rgba(255,211,77,.14); border-color: var(--gold); color: var(--gold); }
+.pill.out-away { background: rgba(255,107,107,.14); border-color: var(--bad); color: var(--bad); }
 .chips { display: inline-flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
 .chips:empty { display: none; }
 
@@ -107,6 +114,27 @@ tr.clickable:hover td { background: var(--surface-2); }
 .center { text-align: center; }
 .mt { margin-top: 14px; }
 .breakdown { color: var(--muted); font-size: .76rem; }
+
+/* Distribuição de palpites do grupo (view "Por jogo") */
+.block-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.block-head strong { font-size: .95rem; }
+.distbar { display: flex; height: 8px; border-radius: 999px; overflow: hidden; background: var(--surface-2); }
+.distbar > i { display: block; height: 100%; }
+.fill-home { background: var(--accent); }
+.fill-draw { background: var(--gold); }
+.fill-away { background: var(--bad); }
+.outcome-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; text-align: center; align-items: start; }
+.outcome-grid img { margin: 0 auto; }
+.outcome-grid .ocount { font-size: 1.3rem; font-weight: 700; margin-top: 4px; }
+.outcome-grid .olabel { font-size: .68rem; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+.outcome-grid .opct { display: inline-block; margin-top: 4px; padding: 1px 8px; border-radius: 999px; font-size: .8rem; font-weight: 600; border: 1px solid var(--border); }
+.scorerow { display: flex; align-items: center; gap: 8px; margin: 7px 0; }
+.scorerow .track { flex: 1; height: 8px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.scorerow .track > i { display: block; height: 100%; }
+.scorerow .spct { min-width: 34px; text-align: right; font-size: .8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.scorerow .scount { min-width: 20px; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rulerow { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: .9rem; }
+.rulerow:last-child { border-bottom: none; }
 
 a.backlink { color: var(--accent); cursor: pointer; font-size: .85rem; display: inline-block; margin-bottom: 10px; }
 

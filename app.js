@@ -224,6 +224,66 @@ function viewParticipant(root) {
 let selectedGame = null;
 function goGame(gid) { selectedGame = gid; setView('game'); }
 
+/* Bloco "Palpites do grupo": barra empilhada + colunas mandante/empate/visitante. */
+function outcomeBlock(f, agg) {
+  const o = agg.outcome;
+  const stacked = el('div', { class: 'distbar' },
+    el('i', { class: 'fill-home', style: `width:${o.home.pct}%` }),
+    el('i', { class: 'fill-draw', style: `width:${o.draw.pct}%` }),
+    el('i', { class: 'fill-away', style: `width:${o.away.pct}%` }));
+
+  const col = (head, count, pct, cls) => el('div', {},
+    el('div', { style: 'height:24px;display:flex;align-items:center;justify-content:center' }, head),
+    el('div', { class: 'ocount' }, String(count)),
+    el('div', { class: 'olabel' }, 'pessoas'),
+    el('div', { class: `opct ${cls}` }, `${pct}%`));
+
+  return el('div', { class: 'card' },
+    el('div', { class: 'block-head' },
+      el('strong', {}, 'Palpites do grupo'),
+      el('span', { class: 'pill' }, `${agg.total} palpite${agg.total === 1 ? '' : 's'}`)),
+    stacked,
+    el('div', { class: 'outcome-grid' },
+      col(flagImg(f.home) || el('span', { class: 'out-home' }, 'Mandante'), o.home.count, o.home.pct, 'out-home'),
+      col(el('span', { class: 'pill out-draw' }, '='), o.draw.count, o.draw.pct, 'out-draw'),
+      col(flagImg(f.away) || el('span', { class: 'out-away' }, 'Visitante'), o.away.count, o.away.pct, 'out-away')),
+    el('div', { class: 'small muted center mt' }, 'Os preferidos deste grupo'));
+}
+
+/* Bloco "Detalhamento por placar": cada placar com bandeira do vencedor, barra, % e contagem. */
+function scoreBlock(f, agg) {
+  const card = el('div', { class: 'card' },
+    el('div', { class: 'block-head' }, el('strong', {}, 'Detalhamento por placar')));
+  agg.scores.forEach(s => {
+    const winFlag = s.outcome === 'home' ? flagImg(f.home)
+      : s.outcome === 'away' ? flagImg(f.away)
+      : el('span', { class: 'pill out-draw' }, '=');
+    const fillClass = s.outcome === 'home' ? 'fill-home' : s.outcome === 'away' ? 'fill-away' : 'fill-draw';
+    card.append(el('div', { class: 'scorerow' },
+      el('span', { class: `pill out-${s.outcome}` }, `${s.h}-${s.a}`),
+      winFlag,
+      el('div', { class: 'track' }, el('i', { class: fillClass, style: `width:${s.pct}%` })),
+      el('span', { class: 'spct' }, `${s.pct}%`),
+      el('span', { class: 'scount' }, String(s.count))
+    ));
+  });
+  return card;
+}
+
+/* Bloco "Como pontua este jogo": regras vindas do config. */
+function scoringRulesBlock(cfg) {
+  if (!cfg) return el('span');
+  const row = (label, val) => el('div', { class: 'rulerow' },
+    el('span', {}, label), el('span', { class: 'pill out-home' }, val));
+  return el('div', { class: 'card' },
+    el('div', { class: 'block-head' }, el('strong', {}, 'Como pontua este jogo')),
+    row('Placar exato', String(cfg.exact)),
+    row('Acertar o vencedor (direção)', `+${cfg.winner}`),
+    row('Saldo de gols (com direção certa)', `+${cfg.goal_difference}`),
+    row('Bônus gol do mandante', `+${cfg.goal_bonus_home}`),
+    row('Bônus gol do visitante', `+${cfg.goal_bonus_away}`));
+}
+
 function viewGame(root) {
   // ordena por horário real (os ids da FIFA não são cronológicos); empate/sem data cai no id
   const gameIds = Object.keys(DATA.fixtures).sort((a, b) => {
@@ -252,6 +312,15 @@ function viewGame(root) {
   ));
 
   const game = STANDINGS.perGame[selectedGame] || {};
+
+  // Distribuição dos palpites do grupo (agregação pura no engine)
+  const agg = gameAggregates(game);
+  if (agg.total) {
+    root.append(outcomeBlock(f, agg));
+    root.append(scoreBlock(f, agg));
+  }
+  root.append(scoringRulesBlock(DATA.config));
+
   const rows = Object.keys(game).map(name => ({ name, ...game[name] }));
   rows.sort((a, b) => b.points - a.points || a.name.localeCompare(b.name, 'pt'));
 

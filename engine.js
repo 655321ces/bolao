@@ -74,6 +74,47 @@ function gameDetail(bet, result, config) {
   return { bet, result, points: s.points, exact: s.exact, tendencia, golsVencedor, breakdown: s.breakdown, pending: false };
 }
 
+/**
+ * Agrega os palpites de UM jogo (recebe perGame[gid] = { nome: detail }):
+ * distribuição por resultado (mandante/empate/visitante) e por placar.
+ * Considera só quem palpitou (bet != null). Puro — reusado pela UI "por jogo".
+ * @returns {{
+ *   total:number,
+ *   outcome:{ home:{count,pct}, draw:{count,pct}, away:{count,pct} },
+ *   scores: Array<{score:string, h:number, a:number, count:number, pct:number, outcome:'home'|'draw'|'away'}>
+ * }}
+ */
+function gameAggregates(perGameEntry) {
+  const bets = Object.values(perGameEntry || {}).map(d => d.bet).filter(b => b != null);
+  const total = bets.length;
+  const pct = n => total ? Math.round((n / total) * 100) : 0;
+
+  let home = 0, draw = 0, away = 0;
+  const byScore = {};
+  for (const [h, a] of bets) {
+    if (h > a) home++; else if (h < a) away++; else draw++;
+    const k = `${h}x${a}`;
+    byScore[k] = (byScore[k] || 0) + 1;
+  }
+
+  const scores = Object.entries(byScore)
+    .map(([k, count]) => {
+      const [h, a] = k.split('x').map(Number);
+      return { score: k, h, a, count, pct: pct(count), outcome: h > a ? 'home' : (h < a ? 'away' : 'draw') };
+    })
+    .sort((x, y) => y.count - x.count || x.score.localeCompare(y.score));
+
+  return {
+    total,
+    outcome: {
+      home: { count: home, pct: pct(home) },
+      draw: { count: draw, pct: pct(draw) },
+      away: { count: away, pct: pct(away) },
+    },
+    scores,
+  };
+}
+
 /** Resolve um nome-de-tela para seu canônico via mapa de aliases. */
 function canonical(name, aliases) {
   return Object.prototype.hasOwnProperty.call(aliases, name) ? aliases[name] : name;
@@ -473,7 +514,7 @@ function runParseMergeTests() {
 // Exporta para uso em browser (global) e em Node (module) para testes
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
-    sign, score, gameDetail, canonical, resolveBets, computeStandings, rankCompare, assignPositions,
+    sign, score, gameDetail, gameAggregates, canonical, resolveBets, computeStandings, rankCompare, assignPositions,
     parseLine, sortByName, sortByGameId, mergeGameBets,
     fmtBet, breakdownText, criteriaList, FLAG,
     runSelfTests, runTiebreakTests, runParseMergeTests
