@@ -32,14 +32,18 @@ A ordem abaixo é o que **só você (operador)** precisa fazer — o código já
    - **Redirect URLs**: adicione `https://655321ces.github.io/bolao/palpites.html`
      (e, para testar local, `http://localhost:8123/palpites.html`).
 
-## 3. Criar as tabelas e semear os jogos
+## 3. Criar as tabelas e semear os dados
 
 No Supabase: **SQL Editor → New query**, e rode nesta ordem:
-1. Cole e rode `supabase/schema.sql` (tabelas + RLS + trigger de perfil).
+1. Cole e rode `supabase/schema.sql` (tabelas + RLS + trigger de perfil + roster/claim).
 2. Cole e rode `supabase/seed-games.sql` (popula os 72 jogos; idempotente).
+3. Cole e rode `supabase/seed-roster.sql` (popula os 15 participantes para a
+   auto-reivindicação de identidade; idempotente).
 
-> Se o `fixtures.json` mudar, regenere o seed com `node tools/seed-games.mjs > supabase/seed-games.sql`
-> (precisa de Node — roda em qualquer máquina com Node ou no CI) e rode de novo no SQL Editor.
+> Se o `fixtures.json` mudar, regenere o seed dos jogos com
+> `node tools/seed-games.mjs > supabase/seed-games.sql` (precisa de Node — roda em
+> qualquer máquina com Node ou no CI). Se entrar gente nova no bolão, acrescente o
+> nome em `seed-roster.sql` e rode de novo.
 
 ## 4. Apontar o front para o seu projeto
 
@@ -54,7 +58,9 @@ ponha a `service_role` aqui.
 
 1. Abra `palpites.html` pela URL do GitHub Pages (o login Google exige a redirect URL
    registrada; por isso teste pela URL real, não por `file://`).
-2. Entre com Google → salve um palpite num jogo aberto → recarregue → deve persistir.
+2. Entre com Google → na 1ª vez aparece **"Quem é você?"**: escolha seu nome na lista
+   (isso liga sua conta ao seu histórico). Depois → salve um palpite num jogo aberto →
+   recarregue → deve persistir.
 3. Confira a trava: num jogo já iniciado os campos não aparecem (fica em "Fechados") e o
    RLS recusa qualquer tentativa de gravar.
 4. Validação opcional do RLS: no SQL Editor, force `locks_at` de um jogo para o passado e

@@ -14,7 +14,7 @@
 //   ... --dry-run   (imprime, não escreve)
 // ============================================================
 
-import { writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -52,29 +52,39 @@ async function main() {
   const locked = new Set(games.filter(g => now >= Date.parse(g.locks_at)).map(g => g.id));
   const nameById = Object.fromEntries(profiles.map(p => [p.id, p.display_name]));
 
-  const out = {};
+  // monta só os jogos travados que TÊM palpite no Supabase
+  const fromSupabase = {};
   for (const b of bets) {
     if (!locked.has(b.game_id)) continue;            // jogo aberto → ainda escondido
     const name = nameById[b.user_id];
     if (!name) { console.error(`AVISO: bet sem profile (user ${b.user_id}) — pulado.`); continue; }
-    (out[b.game_id] ||= {})[name] = [b.home, b.away];
+    (fromSupabase[b.game_id] ||= {})[name] = [b.home, b.away];
   }
 
+  // MERGE: parte do bets.json atual e sobrepõe SÓ os jogos vindos do Supabase.
+  // Preserva a história (fase de grupos do bolaogratis) que o Supabase não tem.
+  let existing = {};
+  try { existing = JSON.parse(await readFile(join(ROOT, 'data', 'bets.json'), 'utf8')); }
+  catch { /* primeiro run / arquivo ausente → começa vazio */ }
+
+  const merged = { ...existing };
+  for (const gid of Object.keys(fromSupabase)) merged[gid] = fromSupabase[gid];
+
   // ordena jogos e nomes para saída estável (igual ao fluxo manual)
-  const sorted = sortByGameId(out);
+  const sorted = sortByGameId(merged);
   for (const gid of Object.keys(sorted)) sorted[gid] = sortByName(sorted[gid]);
 
   const json = JSON.stringify(sorted, null, 2) + '\n';
-  const games_n = Object.keys(sorted).length;
-  const bets_n = Object.values(sorted).reduce((s, g) => s + Object.keys(g).length, 0);
+  const ov_n = Object.keys(fromSupabase).length;
+  const bets_n = Object.values(fromSupabase).reduce((s, g) => s + Object.keys(g).length, 0);
 
   if (DRY) {
-    console.log(`[dry-run] ${games_n} jogos travados, ${bets_n} palpites. Não escreveu.`);
-    console.log(json.slice(0, 600) + (json.length > 600 ? '\n…' : ''));
+    console.log(`[dry-run] Supabase sobreporia ${ov_n} jogos (${bets_n} palpites) sobre ${Object.keys(existing).length} já no bets.json. Não escreveu.`);
+    console.log(JSON.stringify(sortByGameId(fromSupabase), null, 2).slice(0, 600));
     return;
   }
   await writeFile(join(ROOT, 'data', 'bets.json'), json, 'utf8');
-  console.log(`Escreveu data/bets.json: ${games_n} jogos, ${bets_n} palpites.`);
+  console.log(`Escreveu data/bets.json: ${Object.keys(sorted).length} jogos no total; Supabase sobrepôs ${ov_n} (${bets_n} palpites).`);
 }
 
 main().catch(e => { console.error('erro:', e.message); process.exit(1); });

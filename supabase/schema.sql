@@ -126,3 +126,41 @@ $$;
 drop trigger if exists bets_touch on public.bets;
 create trigger bets_touch before update on public.bets
   for each row execute function public.touch_updated_at();
+
+-- ---------- roster: identidades canônicas (auto-reivindicação) ----------
+-- Semeado com os participantes históricos (ver seed-roster.sql). No 1º login a
+-- pessoa escolhe "sou eu = Fulano", o que liga a conta Google ao nome canônico
+-- usado no ranking — assim história (bets.json) e futuro batem sob 1 identidade.
+create table if not exists public.roster (
+  canonical_name text primary key,
+  claimed_by     uuid unique references auth.users(id) on delete set null
+);
+
+alter table public.roster enable row level security;
+
+-- todos os autenticados leem o roster (para ver os nomes ainda livres)
+drop policy if exists roster_select_authenticated on public.roster;
+create policy roster_select_authenticated on public.roster
+  for select to authenticated using (true);
+-- escrita só via claim_identity() (RPC security definer); sem policy de update aqui
+
+-- reivindica um nome canônico (atômico): solta o anterior, pega o novo se livre,
+-- e aplica em profiles.display_name. Recusa nome inexistente ou já tomado.
+create or replace function public.claim_identity(p_name text)
+returns void
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  -- solta qualquer nome que esta pessoa já tivesse (permite trocar)
+  update public.roster set claimed_by = null where claimed_by = auth.uid();
+  -- pega o novo só se estiver livre
+  update public.roster set claimed_by = auth.uid()
+   where canonical_name = p_name and claimed_by is null;
+  if not found then
+    raise exception 'Nome "%" indisponível ou inexistente', p_name;
+  end if;
+  -- aplica o nome canônico no profile
+  update public.profiles set display_name = p_name where id = auth.uid();
+end;
+$$;

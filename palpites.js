@@ -41,6 +41,8 @@ let sb = null;       // cliente Supabase
 let USER = null;     // usuário logado
 let GAMES = [];      // jogos ordenados por kickoff
 let MYBETS = {};     // game_id -> {home, away}
+let ROSTER = [];     // [{canonical_name, claimed_by}]
+let MYNAME = null;   // nome canônico já reivindicado por mim (ou null)
 
 /* ---------------- config / cliente ---------------- */
 function configMissing() {
@@ -79,8 +81,10 @@ async function doLogout() {
   await sb.auth.signOut();
   USER = null;
   MYBETS = {};
+  ROSTER = [];
+  MYNAME = null;
   renderAuth();
-  renderGames();
+  renderMain();
 }
 
 function showStatus(kind, msg) {
@@ -102,6 +106,28 @@ async function loadMyBets() {
   const { data, error } = await sb.from('bets').select('game_id, home, away').eq('user_id', USER.id);
   if (error) throw error;
   for (const b of data || []) MYBETS[b.game_id] = { home: b.home, away: b.away };
+}
+
+async function loadRoster() {
+  ROSTER = []; MYNAME = null;
+  if (!USER) return;
+  const { data, error } = await sb.from('roster').select('canonical_name, claimed_by').order('canonical_name');
+  if (error) throw error;
+  ROSTER = data || [];
+  const mine = ROSTER.find(r => r.claimed_by === USER.id);
+  MYNAME = mine ? mine.canonical_name : null;
+}
+
+async function claimIdentity(name, statusEl) {
+  statusEl.textContent = 'confirmando…'; statusEl.className = 'small muted'; statusEl.style.color = '';
+  const { error } = await sb.rpc('claim_identity', { p_name: name });
+  if (error) {
+    statusEl.textContent = 'não deu: ' + error.message;
+    statusEl.className = 'small'; statusEl.style.color = 'var(--bad)';
+    return;
+  }
+  await loadRoster();
+  renderMain();
 }
 
 async function saveBet(game, homeInput, awayInput, statusEl) {
@@ -161,13 +187,46 @@ function lockedRow(g) {
   );
 }
 
-function renderGames() {
+function renderClaim(root) {
+  const free = ROSTER.filter(r => !r.claimed_by).map(r => r.canonical_name);
+  const card = el('div', { class: 'card' });
+  card.append(
+    el('h3', {}, 'Quem é você?'),
+    el('div', { class: 'meta' }, 'Escolha seu nome na lista do bolão. Isso liga sua conta Google ao seu histórico no ranking.')
+  );
+  if (!free.length) {
+    card.append(el('p', { class: 'muted small' }, 'Todos os nomes já foram reivindicados. Se algum está errado, fale com o operador.'));
+    root.append(card);
+    return;
+  }
+  const sel = el('select');
+  sel.append(el('option', { value: '' }, '— selecione —'));
+  free.forEach(n => sel.append(el('option', { value: n }, n)));
+  const status = el('span', { class: 'small muted' });
+  const btn = el('button', { class: 'btn', onclick: () => {
+    if (sel.value) claimIdentity(sel.value, status);
+    else { status.textContent = 'escolha um nome'; status.style.color = ''; }
+  } }, 'Confirmar');
+  card.append(
+    el('div', { class: 'controls' }, el('label', { class: 'field' }, 'Seu nome'), sel),
+    el('div', { class: 'admin-row', style: 'align-items:center' }, btn, status)
+  );
+  root.append(card);
+}
+
+function renderMain() {
   const root = $('#app');
   root.innerHTML = '';
   if (!USER) {
     root.append(el('p', { class: 'center muted mt' }, 'Entre com o Google para palpitar.'));
     return;
   }
+  if (!MYNAME) { renderClaim(root); return; }
+  renderGames(root);
+}
+
+function renderGames(root) {
+  root.append(el('p', { class: 'small muted', style: 'margin:4px 0 12px' }, 'Você é: ', el('strong', {}, MYNAME)));
   const open = GAMES.filter(isOpen);
   const locked = GAMES.filter(g => !isOpen(g));
 
@@ -213,8 +272,9 @@ async function init() {
     await refreshSession();
     await loadGames();
     await loadMyBets();
+    await loadRoster();
     renderAuth();
-    renderGames();
+    renderMain();
   } catch (err) {
     showStatus('fail', 'Erro ao carregar: ' + (err.message || err));
   }
