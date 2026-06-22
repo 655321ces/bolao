@@ -37,6 +37,24 @@ function matchLabel(gameId) {
   return `${f.home} x ${f.away}`;
 }
 
+/** Bandeira (flagcdn) do time; usa o mapa FLAG do engine. null se desconhecido. */
+function flagImg(name) {
+  const code = FLAG[name];
+  if (!code) return null;
+  return el('img', {
+    src: `https://flagcdn.com/24x18/${code}.png`,
+    srcset: `https://flagcdn.com/48x36/${code}.png 2x`,
+    alt: name, width: '24', height: '18', loading: 'lazy',
+    style: 'border-radius:2px;flex:none',
+  });
+}
+
+/** Matchup com bandeiras: 🇦 Home x Away 🇧. */
+function flaggedMatch(home, away) {
+  return el('span', { style: 'display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap' },
+    flagImg(home), el('span', {}, home), el('span', { class: 'muted' }, 'x'), el('span', {}, away), flagImg(away));
+}
+
 /* Converte a data do fixture ("dd/mm HHh" ou "dd/mm HHhMM") em timestamp (ms).
    Sem ano no fixture; assume FIXTURE_YEAR (horário de Brasília / local do navegador). */
 const FIXTURE_YEAR = 2026;
@@ -58,36 +76,11 @@ function lastStartedGameId(gameIds) {
   return best || gameIds[0];
 }
 
-function fmtBet(bet) {
-  return bet == null ? '—' : `${bet[0]}x${bet[1]}`;
-}
-
-function breakdownText(d) {
-  if (d.bet == null) return 'não palpitou';
-  if (d.exact) return 'placar exato';
-  const parts = [];
-  const b = d.breakdown;
-  if (b.winner) parts.push(`direção +${b.winner}`);
-  if (b.goal_difference) parts.push(`saldo +${b.goal_difference}`);
-  if (b.goal_bonus_home) parts.push(`gol mandante +${b.goal_bonus_home}`);
-  if (b.goal_bonus_away) parts.push(`gol visitante +${b.goal_bonus_away}`);
-  return parts.length ? parts.join(' · ') : 'sem acerto';
-}
-
-/**
- * Selos dos critérios de desempate para um jogo: Exato / Tendência / Gols venc.
- * Exato já implica os outros, então mostra só "Exato". Caso contrário, mostra
- * os que foram acertados. Retorna um <span> (vazio se nada).
- */
+/* fmtBet/breakdownText/criteriaList vêm do engine.js (fonte única). Aqui fica só
+   o render em DOM dos selos de desempate (chips). */
 function criteriaChips(d) {
   const wrap = el('span', { class: 'chips' });
-  if (d.pending || d.bet == null) return wrap;
-  if (d.exact) {
-    wrap.append(el('span', { class: 'pill exact', title: 'Cravou o placar' }, 'Exato'));
-    return wrap;
-  }
-  if (d.tendencia) wrap.append(el('span', { class: 'pill tend', title: 'Acertou a direção (vitória/empate)' }, 'Tendência'));
-  if (d.golsVencedor) wrap.append(el('span', { class: 'pill gv', title: 'Acertou os gols de quem venceu' }, 'Gols venc.'));
+  for (const c of criteriaList(d)) wrap.append(el('span', { class: `pill ${c.cls}`, title: c.title }, c.label));
   return wrap;
 }
 
@@ -214,7 +207,7 @@ function viewParticipant(root) {
       : el('td', { class: 'num' }, el('span', { class: 'score-chip' + (d.points ? ' pts-strong' : ' muted') }, String(d.points)));
     tbody.append(el('tr', { class: 'clickable', onclick: () => goGame(gid) },
       el('td', {},
-        el('div', {}, matchLabel(gid)),
+        flaggedMatch(DATA.fixtures[gid].home, DATA.fixtures[gid].away),
         el('div', { class: 'breakdown' }, d.pending ? 'aguardando resultado' : breakdownText(d)),
         criteriaChips(d)),
       el('td', { class: 'num' }, fmtBet(d.bet)),
@@ -251,7 +244,7 @@ function viewGame(root) {
   const f = DATA.fixtures[selectedGame];
   const result = DATA.results[selectedGame] || null;
   root.append(el('div', { class: 'card' },
-    el('h3', {}, `${f.home} x ${f.away}`),
+    el('h3', {}, flaggedMatch(f.home, f.away)),
     el('div', { class: 'meta' }, `Grupo ${f.group} · Rodada ${f.round} · ${f.date}`),
     result
       ? el('div', {}, 'Resultado: ', el('strong', { class: 'pts-strong' }, `${result[0]}x${result[1]}`))

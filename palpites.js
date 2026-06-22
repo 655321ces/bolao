@@ -142,48 +142,12 @@ function myBetFor(g) {
 }
 
 /* ---------------- pontuação dos jogos fechados ----------------
-   Mesma semântica de computeStandings/perGame (engine.js incluído no HTML).
-   fmtBet/breakdownText/criteriaChips são cópias diretas de app.js. */
-function fmtBet(bet) {
-  return bet == null ? '—' : `${bet[0]}x${bet[1]}`;
-}
-
-function breakdownText(d) {
-  if (d.bet == null) return 'não palpitou';
-  if (d.exact) return 'placar exato';
-  const parts = [];
-  const b = d.breakdown;
-  if (b.winner) parts.push(`direção +${b.winner}`);
-  if (b.goal_difference) parts.push(`saldo +${b.goal_difference}`);
-  if (b.goal_bonus_home) parts.push(`gol mandante +${b.goal_bonus_home}`);
-  if (b.goal_bonus_away) parts.push(`gol visitante +${b.goal_bonus_away}`);
-  return parts.length ? parts.join(' · ') : 'sem acerto';
-}
-
+   fmtBet/breakdownText/criteriaList/gameDetail vêm do engine.js (fonte única).
+   Aqui só o render em DOM dos selos de desempate (chips). */
 function criteriaChips(d) {
   const wrap = el('span', { class: 'chips' });
-  if (d.pending || d.bet == null) return wrap;
-  if (d.exact) {
-    wrap.append(el('span', { class: 'pill exact', title: 'Cravou o placar' }, 'Exato'));
-    return wrap;
-  }
-  if (d.tendencia) wrap.append(el('span', { class: 'pill tend', title: 'Acertou a direção (vitória/empate)' }, 'Tendência'));
-  if (d.golsVencedor) wrap.append(el('span', { class: 'pill gv', title: 'Acertou os gols de quem venceu' }, 'Gols venc.'));
+  for (const c of criteriaList(d)) wrap.append(el('span', { class: `pill ${c.cls}`, title: c.title }, c.label));
   return wrap;
-}
-
-/* Detalhe de pontuação de um palpite num jogo (engine.score + flags de desempate),
-   espelhando o que computeStandings monta por jogo. */
-function detailFor(bet, result, config) {
-  if (result == null || !config) return { bet, result: null, pending: true };
-  const s = score(bet, result, config);
-  let tendencia = false, golsVencedor = false;
-  if (bet != null) {
-    const [ph, pa] = bet, [rh, ra] = result;
-    tendencia = sign(ph - pa) === sign(rh - ra);
-    golsVencedor = rh !== ra && ((rh > ra && ph === rh) || (ra > rh && pa === ra));
-  }
-  return { bet, result, points: s.points, exact: s.exact, tendencia, golsVencedor, breakdown: s.breakdown, pending: false };
 }
 
 async function loadRoster() {
@@ -229,21 +193,7 @@ async function saveBet(game, homeInput, awayInput, statusEl) {
   statusEl.textContent = '✓ salvo'; statusEl.className = 'small'; statusEl.style.color = 'var(--accent)';
 }
 
-/* ---------------- bandeiras ---------------- */
-// nome do fixture → código ISO 3166-1 (flagcdn). Inglaterra/Escócia usam subdivisão.
-const FLAG = {
-  'México': 'mx', 'África do Sul': 'za', 'Coreia do Sul': 'kr', 'Rep. Tcheca': 'cz',
-  'Canadá': 'ca', 'Bósnia': 'ba', 'EUA': 'us', 'Paraguai': 'py', 'Catar': 'qa',
-  'Suíça': 'ch', 'Brasil': 'br', 'Marrocos': 'ma', 'Haiti': 'ht', 'Escócia': 'gb-sct',
-  'Austrália': 'au', 'Turquia': 'tr', 'Alemanha': 'de', 'Curaçao': 'cw', 'Holanda': 'nl',
-  'Japão': 'jp', 'Costa do Marfim': 'ci', 'Equador': 'ec', 'Suécia': 'se', 'Tunísia': 'tn',
-  'Espanha': 'es', 'Cabo Verde': 'cv', 'Bélgica': 'be', 'Egito': 'eg', 'Arábia Saudita': 'sa',
-  'Uruguai': 'uy', 'Irã': 'ir', 'Nova Zelândia': 'nz', 'Argentina': 'ar', 'Argélia': 'dz',
-  'França': 'fr', 'Senegal': 'sn', 'Iraque': 'iq', 'Noruega': 'no', 'Áustria': 'at',
-  'Jordânia': 'jo', 'Portugal': 'pt', 'RD Congo': 'cd', 'Inglaterra': 'gb-eng',
-  'Croácia': 'hr', 'Gana': 'gh', 'Panamá': 'pa', 'Uzbequistão': 'uz', 'Colômbia': 'co',
-};
-
+/* ---------------- bandeiras (mapa FLAG vem do engine.js) ---------------- */
 function flagImg(name) {
   const code = FLAG[name];
   if (!code) return null;
@@ -293,7 +243,7 @@ function openGameCard(g) {
 function lockedRow(g) {
   const bet = myBetFor(g);
   const result = RESULTS[g.id] || null;
-  const d = detailFor(bet, result, CONFIG);
+  const d = gameDetail(bet, result, CONFIG);
   const ptsCell = d.pending
     ? el('td', { class: 'num' }, el('span', { class: 'pill pending' }, '—'))
     : el('td', { class: 'num' }, el('span', { class: 'score-chip' + (d.points ? ' pts-strong' : ' muted') }, String(d.points)));

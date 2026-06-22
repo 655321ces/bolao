@@ -52,6 +52,28 @@ function score(bet, result, config) {
   return { points: pts, exact: false, breakdown };
 }
 
+/**
+ * Detalhe de pontuação de um palpite num jogo: pontos + flags de desempate
+ * (exato/tendência/gols do vencedor). FONTE ÚNICA usada por computeStandings e
+ * pelas UIs (app.js, palpites.js). Pendente se não há resultado ou config.
+ * @param {[number,number]|null} bet
+ * @param {[number,number]|null} result
+ * @param {object|null} config
+ */
+function gameDetail(bet, result, config) {
+  if (result == null || config == null) {
+    return { bet, result: null, points: 0, exact: false, tendencia: false, golsVencedor: false, breakdown: null, pending: true };
+  }
+  const s = score(bet, result, config);
+  let tendencia = false, golsVencedor = false;
+  if (bet != null) {
+    const [ph, pa] = bet, [rh, ra] = result;
+    tendencia = sign(ph - pa) === sign(rh - ra);                                    // inclui empates; exato implica direção
+    golsVencedor = rh !== ra && ((rh > ra && ph === rh) || (ra > rh && pa === ra)); // acertou os gols de quem venceu
+  }
+  return { bet, result, points: s.points, exact: s.exact, tendencia, golsVencedor, breakdown: s.breakdown, pending: false };
+}
+
 /** Resolve um nome-de-tela para seu canônico via mapa de aliases. */
 function canonical(name, aliases) {
   return Object.prototype.hasOwnProperty.call(aliases, name) ? aliases[name] : name;
@@ -223,25 +245,14 @@ function computeStandings(data) {
     const result = results[gameId] || null;
     for (const name of Object.keys(bets[gameId])) {
       const bet = bets[gameId][name];
-      let detail;
-      if (result == null) {
-        detail = { bet, result: null, points: 0, exact: false, breakdown: null, pending: true };
-      } else {
-        const s = score(bet, result, config);
-        // critérios de desempate por jogo (booleans; usados também na UI)
-        let tendencia = false, golsVencedor = false;
-        if (bet != null) {
-          const [ph, pa] = bet, [rh, ra] = result;
-          tendencia = sign(ph - pa) === sign(rh - ra);                                          // C2 (inclui empates; exato implica direção)
-          golsVencedor = rh !== ra && ((rh > ra && ph === rh) || (ra > rh && pa === ra));        // C3
-        }
-        detail = { bet, result, points: s.points, exact: s.exact, tendencia, golsVencedor, breakdown: s.breakdown, pending: false };
+      const detail = gameDetail(bet, result, config);   // mesma fonte de verdade da UI
+      if (!detail.pending) {
         const t = totals[name];
-        t.total += s.points;
+        t.total += detail.points;
         if (bet != null) {
-          if (s.exact) t.exacts += 1;        // C1
-          if (tendencia) t.tendencias += 1;  // C2
-          if (golsVencedor) t.golsVencedor += 1; // C3
+          if (detail.exact) t.exacts += 1;           // C1
+          if (detail.tendencia) t.tendencias += 1;   // C2
+          if (detail.golsVencedor) t.golsVencedor += 1; // C3
         }
       }
       perGame[gameId][name] = detail;
@@ -287,6 +298,56 @@ function assignPositions(ranking) {
   }
   return ranking;
 }
+
+/* ---------------- Apresentação (puro, sem DOM) ----------------
+   Strings, decisões e dados reutilizados por app.js e palpites.js. A
+   renderização em DOM (chips, bandeiras) fica em cada UI; aqui só a regra. */
+
+/** Palpite formatado: "HxA" ou "—" (não palpitou). */
+function fmtBet(bet) {
+  return bet == null ? '—' : `${bet[0]}x${bet[1]}`;
+}
+
+/** Texto explicativo da pontuação de um detalhe (saída de gameDetail). */
+function breakdownText(d) {
+  if (d.bet == null) return 'não palpitou';
+  if (d.exact) return 'placar exato';
+  const parts = [];
+  const b = d.breakdown;
+  if (b.winner) parts.push(`direção +${b.winner}`);
+  if (b.goal_difference) parts.push(`saldo +${b.goal_difference}`);
+  if (b.goal_bonus_home) parts.push(`gol mandante +${b.goal_bonus_home}`);
+  if (b.goal_bonus_away) parts.push(`gol visitante +${b.goal_bonus_away}`);
+  return parts.length ? parts.join(' · ') : 'sem acerto';
+}
+
+/**
+ * Selos de desempate a exibir para um detalhe (decisão pura; cada UI
+ * renderiza com seu próprio DOM). Exato implica os outros → mostra só "Exato".
+ * @returns {Array<{cls:string, label:string, title:string}>}
+ */
+function criteriaList(d) {
+  if (d.pending || d.bet == null) return [];
+  if (d.exact) return [{ cls: 'exact', label: 'Exato', title: 'Cravou o placar' }];
+  const out = [];
+  if (d.tendencia) out.push({ cls: 'tend', label: 'Tendência', title: 'Acertou a direção (vitória/empate)' });
+  if (d.golsVencedor) out.push({ cls: 'gv', label: 'Gols venc.', title: 'Acertou os gols de quem venceu' });
+  return out;
+}
+
+/** Nome do time (fixture) → código ISO 3166-1 (flagcdn). Inglaterra/Escócia: subdivisão. */
+const FLAG = {
+  'México': 'mx', 'África do Sul': 'za', 'Coreia do Sul': 'kr', 'Rep. Tcheca': 'cz',
+  'Canadá': 'ca', 'Bósnia': 'ba', 'EUA': 'us', 'Paraguai': 'py', 'Catar': 'qa',
+  'Suíça': 'ch', 'Brasil': 'br', 'Marrocos': 'ma', 'Haiti': 'ht', 'Escócia': 'gb-sct',
+  'Austrália': 'au', 'Turquia': 'tr', 'Alemanha': 'de', 'Curaçao': 'cw', 'Holanda': 'nl',
+  'Japão': 'jp', 'Costa do Marfim': 'ci', 'Equador': 'ec', 'Suécia': 'se', 'Tunísia': 'tn',
+  'Espanha': 'es', 'Cabo Verde': 'cv', 'Bélgica': 'be', 'Egito': 'eg', 'Arábia Saudita': 'sa',
+  'Uruguai': 'uy', 'Irã': 'ir', 'Nova Zelândia': 'nz', 'Argentina': 'ar', 'Argélia': 'dz',
+  'França': 'fr', 'Senegal': 'sn', 'Iraque': 'iq', 'Noruega': 'no', 'Áustria': 'at',
+  'Jordânia': 'jo', 'Portugal': 'pt', 'RD Congo': 'cd', 'Inglaterra': 'gb-eng',
+  'Croácia': 'hr', 'Gana': 'gh', 'Panamá': 'pa', 'Uzbequistão': 'uz', 'Colômbia': 'co',
+};
 
 /* ---------------- Self-test (SINTÉTICO e permanente) ----------------
    Entradas fixas inventadas, independentes de bets.json/results.json.
@@ -412,8 +473,9 @@ function runParseMergeTests() {
 // Exporta para uso em browser (global) e em Node (module) para testes
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
-    sign, score, canonical, resolveBets, computeStandings, rankCompare, assignPositions,
+    sign, score, gameDetail, canonical, resolveBets, computeStandings, rankCompare, assignPositions,
     parseLine, sortByName, sortByGameId, mergeGameBets,
+    fmtBet, breakdownText, criteriaList, FLAG,
     runSelfTests, runTiebreakTests, runParseMergeTests
   };
 }
