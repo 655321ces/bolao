@@ -43,6 +43,8 @@ let GAMES = [];      // jogos ordenados por kickoff
 let MYBETS = {};     // game_id -> {home, away}
 let ROSTER = [];     // [{canonical_name, claimed_by}]
 let MYNAME = null;   // nome canônico já reivindicado por mim (ou null)
+let HISTBETS = {};   // data/bets.json (histórico) — fallback dos jogos já fechados
+let ALIASES = {};    // data/aliases.json — resolve nomes-de-tela para o canônico
 
 /* ---------------- config / cliente ---------------- */
 function configMissing() {
@@ -106,6 +108,33 @@ async function loadMyBets() {
   const { data, error } = await sb.from('bets').select('game_id, home, away').eq('user_id', USER.id);
   if (error) throw error;
   for (const b of data || []) MYBETS[b.game_id] = { home: b.home, away: b.away };
+}
+
+// histórico estático (mesma fonte do ranking público): bets.json + aliases.json.
+// Independe de login; serve de fallback para mostrar o palpite em jogos já fechados.
+async function loadStatic() {
+  try {
+    const [b, a] = await Promise.all([
+      fetch('data/bets.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : {}),
+      fetch('data/aliases.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : {}),
+    ]);
+    HISTBETS = b || {}; ALIASES = a || {};
+  } catch { HISTBETS = {}; ALIASES = {}; }
+}
+
+// meu palpite para um jogo: Supabase tem prioridade; senão cai no histórico
+// (casando MYNAME direto ou via alias de nome-de-tela).
+function myBetFor(g) {
+  const cur = MYBETS[g.id];
+  if (cur) return [cur.home, cur.away];
+  const game = HISTBETS[g.id];
+  if (game) {
+    if (Array.isArray(game[MYNAME])) return game[MYNAME];
+    for (const k of Object.keys(game)) {
+      if ((ALIASES[k] || k) === MYNAME && Array.isArray(game[k])) return game[k];
+    }
+  }
+  return null;
 }
 
 async function loadRoster() {
@@ -179,11 +208,11 @@ function openGameCard(g) {
 }
 
 function lockedRow(g) {
-  const mine = MYBETS[g.id];
+  const bet = myBetFor(g);
   return el('tr', {},
     el('td', {}, el('div', {}, gameLabel(g)),
       el('div', { class: 'breakdown' }, `${fmtBRT(g.kickoff)} · fechado`)),
-    el('td', { class: 'num' }, mine ? `${mine.home}x${mine.away}` : '—')
+    el('td', { class: 'num' }, bet ? `${bet[0]}x${bet[1]}` : '—')
   );
 }
 
@@ -270,6 +299,7 @@ async function init() {
 
   try {
     await refreshSession();
+    await loadStatic();
     await loadGames();
     await loadMyBets();
     await loadRoster();
