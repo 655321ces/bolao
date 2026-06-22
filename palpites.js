@@ -180,37 +180,67 @@ async function saveBet(game, homeInput, awayInput, statusEl) {
   statusEl.textContent = '✓ salvo'; statusEl.className = 'small'; statusEl.style.color = 'var(--accent)';
 }
 
+/* ---------------- bandeiras ---------------- */
+// nome do fixture → código ISO 3166-1 (flagcdn). Inglaterra/Escócia usam subdivisão.
+const FLAG = {
+  'México': 'mx', 'África do Sul': 'za', 'Coreia do Sul': 'kr', 'Rep. Tcheca': 'cz',
+  'Canadá': 'ca', 'Bósnia': 'ba', 'EUA': 'us', 'Paraguai': 'py', 'Catar': 'qa',
+  'Suíça': 'ch', 'Brasil': 'br', 'Marrocos': 'ma', 'Haiti': 'ht', 'Escócia': 'gb-sct',
+  'Austrália': 'au', 'Turquia': 'tr', 'Alemanha': 'de', 'Curaçao': 'cw', 'Holanda': 'nl',
+  'Japão': 'jp', 'Costa do Marfim': 'ci', 'Equador': 'ec', 'Suécia': 'se', 'Tunísia': 'tn',
+  'Espanha': 'es', 'Cabo Verde': 'cv', 'Bélgica': 'be', 'Egito': 'eg', 'Arábia Saudita': 'sa',
+  'Uruguai': 'uy', 'Irã': 'ir', 'Nova Zelândia': 'nz', 'Argentina': 'ar', 'Argélia': 'dz',
+  'França': 'fr', 'Senegal': 'sn', 'Iraque': 'iq', 'Noruega': 'no', 'Áustria': 'at',
+  'Jordânia': 'jo', 'Portugal': 'pt', 'RD Congo': 'cd', 'Inglaterra': 'gb-eng',
+  'Croácia': 'hr', 'Gana': 'gh', 'Panamá': 'pa', 'Uzbequistão': 'uz', 'Colômbia': 'co',
+};
+
+function flagImg(name) {
+  const code = FLAG[name];
+  if (!code) return null;
+  return el('img', {
+    src: `https://flagcdn.com/24x18/${code}.png`,
+    srcset: `https://flagcdn.com/48x36/${code}.png 2x`,
+    alt: name, width: '24', height: '18', loading: 'lazy',
+    style: 'border-radius:2px;flex:none',
+  });
+}
+
 /* ---------------- render ---------------- */
 function gameLabel(g) { return `${g.home} x ${g.away}`; }
+
+function labelWithFlags(g) {
+  return el('span', { style: 'display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap' },
+    flagImg(g.home), el('span', {}, g.home),
+    el('span', { class: 'muted' }, 'x'),
+    el('span', {}, g.away), flagImg(g.away));
+}
 
 function openGameCard(g) {
   const mine = MYBETS[g.id];
   const card = el('div', { class: 'card' });
-  card.append(
-    el('h3', {}, gameLabel(g)),
-    el('div', { class: 'meta' }, `Grupo ${g.grp} · Rodada ${g.round} · ${fmtBRT(g.kickoff)}`)
-  );
-  const inH = el('input', { type: 'number', min: '0', max: '99', inputmode: 'numeric',
-    style: 'width:64px;text-align:center', value: mine ? String(mine.home) : '' });
-  const inA = el('input', { type: 'number', min: '0', max: '99', inputmode: 'numeric',
-    style: 'width:64px;text-align:center', value: mine ? String(mine.away) : '' });
+  card.append(el('div', { class: 'meta' }, `Grupo ${g.grp} · Rodada ${g.round} · ${fmtBRT(g.kickoff)}`));
+  const numStyle = 'width:48px;text-align:center';
+  const inH = el('input', { type: 'number', min: '0', max: '99', inputmode: 'numeric', style: numStyle, value: mine ? String(mine.home) : '' });
+  const inA = el('input', { type: 'number', min: '0', max: '99', inputmode: 'numeric', style: numStyle, value: mine ? String(mine.away) : '' });
   const status = el('span', { class: 'small muted' }, mine ? '✓ salvo' : '');
   const btn = el('button', { class: 'btn', onclick: () => saveBet(g, inH, inA, status) }, 'Salvar');
 
-  card.append(el('div', { class: 'admin-row', style: 'align-items:center' },
-    el('span', { class: 'small muted', style: 'min-width:62px' }, g.home),
+  card.append(el('div', { style: 'display:flex;align-items:center;gap:6px' },
+    flagImg(g.home),
+    el('span', { class: 'small', style: 'flex:1;text-align:right;min-width:0' }, g.home),
     inH, el('span', { class: 'muted' }, '×'), inA,
-    el('span', { class: 'small muted', style: 'min-width:62px' }, g.away),
-    btn
+    el('span', { class: 'small', style: 'flex:1;text-align:left;min-width:0' }, g.away),
+    flagImg(g.away)
   ));
-  card.append(el('div', { style: 'margin-top:6px' }, status));
+  card.append(el('div', { class: 'admin-row', style: 'align-items:center;margin-top:8px' }, btn, status));
   return card;
 }
 
 function lockedRow(g) {
   const bet = myBetFor(g);
   return el('tr', {},
-    el('td', {}, el('div', {}, gameLabel(g)),
+    el('td', {}, labelWithFlags(g),
       el('div', { class: 'breakdown' }, `${fmtBRT(g.kickoff)} · fechado`)),
     el('td', { class: 'num' }, bet ? `${bet[0]}x${bet[1]}` : '—')
   );
