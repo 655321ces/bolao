@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bolão Copa 2026 — Meus palpites</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header class="app-head">
+      <h1>⚽ Meus palpites</h1>
+      <div class="sub">Entre com o Google, palpite até o apito de cada jogo</div>
+    </header>
+
+    <div id="auth"></div>
+    <div id="status"></div>
+    <main id="app"><p class="center muted">Carregando…</p></main>
+
+    <footer class="app-foot">
+      <a href="index.html">← ver ranking</a>
+    </footer>
+  </div>
+
+  <!-- supabase-js por CDN (UMD) — mantém o projeto sem build -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <script src="palpites.js"></script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+name: Exportar palpites (Supabase → bets.json)
+
+# DESLIGADO até o go-live: por enquanto só roda manualmente (workflow_dispatch),
+# e em modo dry-run por padrão. No go-live, descomente o bloco `schedule` abaixo
+# (ex.: a cada 15 min durante os jogos) e rode uma vez com dry_run=false.
+on:
+  # schedule:
+  #   - cron: '*/15 * * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Só simular (não commita bets.json)'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: export-bets
+  cancel-in-progress: false
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Exportar palpites travados
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DRY_RUN: ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '1' || '0' }}
+        run: node tools/export-bets.mjs
+
+      - name: Commitar se mudou
+        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.dry_run) }}
+        run: |
+          if [ -n "$(git status --porcelain data/bets.json)" ]; then
+            git config user.name "bolao-bot"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add data/bets.json
+            git commit -m "Palpites (export do Supabase)"
+            git push
+          else
+            echo "Sem mudanças em bets.json."
+          fi
