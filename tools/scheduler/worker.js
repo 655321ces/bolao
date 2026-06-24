@@ -13,7 +13,7 @@ const OWNER = '655321ces';
 const REPO = 'bolao';
 const FIXTURE_YEAR = 2026;
 const BRT_OFFSET_MIN = 180;        // BRT = UTC-3 → instante UTC = hora BRT + 3h
-const WINDOW_MIN = [105, 210];     // de ~5 min antes do apito (~110) até cobrir prorrogação/pênaltis + lag
+const WINDOW_MIN = [105, 420];     // de ~5 min antes do apito (~110) até +7h: cobre prorrogação/pênaltis + atraso em jogo (parada climática etc.)
 const ACTIVE_UTC_HOURS = [17, 23, 0, 7]; // gate barato: só checa de 17:00–07:59 UTC (faixa dos jogos)
 
 function kickoffMs(date) {
