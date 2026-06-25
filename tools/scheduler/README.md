@@ -61,15 +61,16 @@ com SELECT liberado para `anon`). Ver `supabase/SETUP.md`.
 ## Parâmetros (no `worker.js`)
 - `ACTIVE_UTC_HOURS` — gate barato pra nem consultar fora da faixa dos jogos
   (17:00–07:59 UTC). 1 req/min só dentro dessa faixa (football-data free = 10 req/min).
-- `LIVE_STATUSES` — `IN_PLAY,PAUSED,FINISHED` (o que é buscado e gravado).
+- `KEEP_STATUSES` — `LIVE, IN_PLAY, PAUSED, FINISHED` (o que vira placar na tabela).
+  O plano free rotula jogo em andamento como **`LIVE`** (não IN_PLAY) — por isso ele
+  está na lista e o filtro é feito no código, não no request.
 - `COMP` — competição na football-data (`WC`).
 - Cadência (1 min) = o Cron Trigger `* * * * *`. Para mudar, edite o trigger.
 
 ## Observações
-- **Live depende do plano:** confirme que sua `FOOTBALL_API_KEY` retorna scores de
-  jogos `IN_PLAY` para a competição `WC`. Se o plano só der `FINISHED`, tudo segue
-  funcionando — só não há "ao vivo" (placar final entra mais rápido que o antigo
-  commit-pra-deploy).
+- **Live depende do plano:** o plano free retorna jogo em andamento com status
+  `LIVE` (com placar corrente) — já tratado em `KEEP_STATUSES`. Se algum dia o plano
+  só der `FINISHED`, tudo segue funcionando — só não há "ao vivo".
 - O upsert é **idempotente** (PK = `game_id`): re-gravar o mesmo placar é inofensivo.
 - Custo: free tier da Cloudflare (cron + ~1440 ticks/dia, a maioria saindo no gate
   de horário sem chamar nada externo).

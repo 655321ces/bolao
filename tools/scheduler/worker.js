@@ -18,7 +18,10 @@ const OWNER = '655321ces';
 const REPO = 'bolao';
 const COMP = 'WC';                         // competição na football-data.org
 const ACTIVE_UTC_HOURS = [17, 23, 0, 7];   // gate barato: só consulta de 17:00–07:59 UTC (faixa dos jogos)
-const LIVE_STATUSES = 'IN_PLAY,PAUSED,FINISHED';
+// Status que viram placar na tabela. ATENÇÃO: o plano free da football-data
+// rotula jogo em andamento como 'LIVE' (não IN_PLAY/PAUSED granular). Filtramos
+// no código (não no request) p/ não depender do que o filtro da API aceita.
+const KEEP_STATUSES = new Set(['LIVE', 'IN_PLAY', 'PAUSED', 'FINISHED']);
 
 function inActiveHours(d) {
   const h = d.getUTCHours();
@@ -95,8 +98,8 @@ async function tick(env) {
     fixtureBySet[[norm(f.home), norm(f.away)].sort().join('|')] = gid;
   }
 
-  // jogos ao vivo + finalizados
-  const url = `https://api.football-data.org/v4/competitions/${COMP}/matches?status=${LIVE_STATUSES}`;
+  // todos os jogos da competição; filtramos por status no código (ver KEEP_STATUSES)
+  const url = `https://api.football-data.org/v4/competitions/${COMP}/matches`;
   const res = await fetch(url, { headers: { 'X-Auth-Token': env.FOOTBALL_API_KEY } });
   if (res.status === 401 || res.status === 403) {
     throw new Error(`football-data ${res.status}: token inválido ou plano sem acesso a ${COMP}`);
@@ -109,6 +112,7 @@ async function tick(env) {
   const rows = [];
   const unresolved = [];
   for (const m of matches) {
+    if (!KEEP_STATUSES.has(m.status)) continue;  // pula TIMED/SCHEDULED/adiados/cancelados
     const ft = m.score && m.score.fullTime;      // durante o jogo, fullTime carrega o placar corrente
     if (!ft || ft.home == null || ft.away == null) continue;
     const hn = resolveTeam(m.homeTeam, aliases, fixtureByNorm);
