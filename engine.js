@@ -267,8 +267,9 @@ function mergeGameBets(entries, aliases, gameId = '_') {
  * }}
  */
 function computeStandings(data) {
-  const { fixtures, config, aliases, results, bets: rawBets } = data;
+  const { fixtures, config, aliases, results, bets: rawBets, liveStatus } = data;
   const { bets, conflicts } = resolveBets(rawBets, aliases);
+  const live = liveStatus || {};   // gameId -> status != FINISHED (ranking provisório ao vivo)
 
   // conjunto de participantes derivado das chaves canônicas em bets
   const participantSet = new Set();
@@ -277,19 +278,23 @@ function computeStandings(data) {
   }
   const participants = [...participantSet];
 
-  const totals = {};   // name -> {total, exacts, tendencias, golsVencedor}
-  for (const name of participants) totals[name] = { total: 0, exacts: 0, tendencias: 0, golsVencedor: 0 };
+  const totals = {};   // name -> {total, exacts, tendencias, golsVencedor, live}
+  for (const name of participants) totals[name] = { total: 0, exacts: 0, tendencias: 0, golsVencedor: 0, live: false };
 
+  let hasLive = false;
   const perGame = {};  // gameId -> name -> detail
   for (const gameId of Object.keys(bets)) {
     perGame[gameId] = {};
     const result = results[gameId] || null;
+    const isLive = !!(live[gameId] && live[gameId] !== 'FINISHED');
     for (const name of Object.keys(bets[gameId])) {
       const bet = bets[gameId][name];
       const detail = gameDetail(bet, result, config);   // mesma fonte de verdade da UI
+      detail.live = !detail.pending && isLive;          // jogo em andamento → pontos parciais
       if (!detail.pending) {
         const t = totals[name];
         t.total += detail.points;
+        if (detail.live) { t.live = true; hasLive = true; } // contribuiu com pontos provisórios
         if (bet != null) {
           if (detail.exact) t.exacts += 1;           // C1
           if (detail.tendencia) t.tendencias += 1;   // C2
@@ -301,11 +306,11 @@ function computeStandings(data) {
   }
 
   const ranking = participants
-    .map(name => ({ name, total: totals[name].total, exacts: totals[name].exacts, tendencias: totals[name].tendencias, golsVencedor: totals[name].golsVencedor }))
+    .map(name => ({ name, total: totals[name].total, exacts: totals[name].exacts, tendencias: totals[name].tendencias, golsVencedor: totals[name].golsVencedor, live: totals[name].live }))
     .sort(rankCompare);
   assignPositions(ranking);
 
-  return { participants, ranking, perGame, conflicts };
+  return { participants, ranking, perGame, conflicts, hasLive };
 }
 
 /**

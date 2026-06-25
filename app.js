@@ -2,7 +2,7 @@
    Bolão Copa 2026 — app público (read-only)
    ============================================================ */
 
-const DATA_FILES = ['fixtures', 'config', 'aliases', 'results', 'bets'];
+const DATA_FILES = ['fixtures', 'config', 'aliases', 'bets'];
 let DATA = null;
 let STANDINGS = null;
 let currentView = 'ranking';
@@ -23,13 +23,51 @@ const el = (tag, props = {}, ...kids) => {
   return n;
 };
 
+/* Resultados ao vivo direto do Supabase (tabela `results`, SELECT anon). Devolve
+   { results: {gid:[h,a]}, liveStatus: {gid:status≠FINISHED} }. */
+async function loadResultsFromSupabase() {
+  const cfg = window.SUPABASE_CONFIG;
+  if (!cfg || !cfg.url || !cfg.anonKey) throw new Error('sem SUPABASE_CONFIG');
+  const url = `${cfg.url.replace(/\/+$/, '')}/rest/v1/results?select=game_id,home,away,status`;
+  const res = await fetch(url, { headers: { apikey: cfg.anonKey, Authorization: `Bearer ${cfg.anonKey}` }, cache: 'no-store' });
+  if (!res.ok) throw new Error(`Supabase results ${res.status}`);
+  const rows = await res.json();
+  const results = {}, liveStatus = {};
+  for (const r of rows) {
+    const gid = String(r.game_id);
+    results[gid] = [r.home, r.away];
+    if (r.status && r.status !== 'FINISHED') liveStatus[gid] = r.status;
+  }
+  return { results, liveStatus };
+}
+
+/* Fallback: o snapshot versionado no Git (só FINISHED, sem ao vivo). */
+async function loadResultsFromStatic() {
+  const res = await fetch('data/results.json', { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Falha ao carregar data/results.json (${res.status})`);
+  return { results: await res.json(), liveStatus: {} };
+}
+
+/* Supabase é a fonte primária (ao vivo); cai para results.json se ele falhar. */
+async function loadResults() {
+  try { return await loadResultsFromSupabase(); }
+  catch (err) {
+    console.warn('Supabase indisponível, usando data/results.json:', err.message || err);
+    return await loadResultsFromStatic();
+  }
+}
+
 async function loadData() {
   const entries = await Promise.all(DATA_FILES.map(async name => {
     const res = await fetch(`data/${name}.json`, { cache: 'no-store' });
     if (!res.ok) throw new Error(`Falha ao carregar data/${name}.json (${res.status})`);
     return [name, await res.json()];
   }));
-  return Object.fromEntries(entries);
+  const data = Object.fromEntries(entries);
+  const { results, liveStatus } = await loadResults();
+  data.results = results;
+  data.liveStatus = liveStatus;
+  return data;
 }
 
 function matchLabel(gameId) {
@@ -120,6 +158,11 @@ function renderConflicts() {
 /* ---------------- View: Ranking ---------------- */
 function viewRanking(root) {
   const r = STANDINGS.ranking;
+  if (STANDINGS.hasLive) {
+    root.append(el('div', { class: 'banner live-banner' },
+      el('span', { class: 'pill live' }, 'AO VIVO'),
+      ' Ranking parcial — há jogo em andamento; os pontos se firmam quando o jogo encerra.'));
+  }
   const top3 = r.slice(0, 3);
   if (top3.length === 3) {
     const order = [top3[1], top3[0], top3[2]]; // 2º, 1º, 3º
@@ -152,7 +195,7 @@ function viewRanking(root) {
   r.forEach(p => {
     tbody.append(el('tr', { class: 'clickable', onclick: () => goParticipant(p.name) },
       el('td', { class: 'rank-pos' }, String(p.pos)),
-      el('td', {}, p.name),
+      el('td', {}, p.name, p.live ? el('span', { class: 'pill live mini' }, 'ao vivo') : null),
       el('td', { class: 'num pts-strong' }, String(p.total)),
       el('td', { class: 'num' }, String(p.exacts)),
       el('td', { class: 'num muted' }, String(p.tendencias)),
@@ -211,7 +254,9 @@ function viewParticipant(root) {
         el('div', { class: 'breakdown' }, d.pending ? 'aguardando resultado' : breakdownText(d)),
         criteriaChips(d)),
       el('td', { class: 'num' }, fmtBet(d.bet)),
-      el('td', { class: 'num' }, d.result ? `${d.result[0]}x${d.result[1]}` : '—'),
+      el('td', { class: 'num' },
+        d.result ? `${d.result[0]}x${d.result[1]}` : '—',
+        d.live ? el('span', { class: 'pill live mini' }, 'ao vivo') : null),
       ptsCell
     ));
   });
@@ -289,11 +334,15 @@ function viewGame(root) {
 
   const f = DATA.fixtures[selectedGame];
   const result = DATA.results[selectedGame] || null;
+  const isLive = !!(DATA.liveStatus && DATA.liveStatus[selectedGame]);
   root.append(el('div', { class: 'card' },
     el('h3', {}, flaggedMatch(f.home, f.away)),
     el('div', { class: 'meta' }, `Grupo ${f.group} · Rodada ${f.round} · ${f.date}`),
     result
-      ? el('div', {}, 'Resultado: ', el('strong', { class: 'pts-strong' }, `${result[0]}x${result[1]}`))
+      ? el('div', {},
+          isLive ? el('span', { class: 'pill live' }, 'AO VIVO') : null,
+          isLive ? ' Parcial: ' : 'Resultado: ',
+          el('strong', { class: 'pts-strong' }, `${result[0]}x${result[1]}`))
       : el('span', { class: 'pill pending' }, 'aguardando resultado')
   ));
 
@@ -375,13 +424,38 @@ const VIEWS = { ranking: viewRanking, participant: viewParticipant, game: viewGa
 
 function setView(v) { currentView = v; render(); }
 
-function render() {
+function render({ keepScroll = false } = {}) {
   document.querySelectorAll('#tabs button').forEach(b =>
     b.classList.toggle('active', b.dataset.view === currentView));
   const root = $('#app');
   root.innerHTML = '';
   VIEWS[currentView](root);
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (!keepScroll) window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* Auto-refresh: re-busca só os resultados (Supabase) a cada 30s e re-renderiza
+   se algo mudou — sem pular o scroll. Mantém o ranking acompanhando os jogos
+   ao vivo sem o usuário recarregar a página. */
+const REFRESH_MS = 30000;
+let lastResultsSig = '';
+
+function resultsSig(results, liveStatus) {
+  return JSON.stringify(results) + '|' + JSON.stringify(liveStatus);
+}
+
+async function refreshResults() {
+  try {
+    const { results, liveStatus } = await loadResults();
+    const sig = resultsSig(results, liveStatus);
+    if (sig === lastResultsSig) return;     // nada novo: não re-renderiza
+    lastResultsSig = sig;
+    DATA.results = results;
+    DATA.liveStatus = liveStatus;
+    STANDINGS = computeStandings(DATA);
+    render({ keepScroll: true });
+  } catch (err) {
+    console.warn('refresh falhou:', err.message || err); // silencioso na UI
+  }
 }
 
 async function init() {
@@ -389,10 +463,12 @@ async function init() {
     b.addEventListener('click', () => setView(b.dataset.view)));
   try {
     DATA = await loadData();
+    lastResultsSig = resultsSig(DATA.results, DATA.liveStatus);
     STANDINGS = computeStandings(DATA);
     renderSelfTest();
     renderConflicts();
     render();
+    setInterval(refreshResults, REFRESH_MS);
   } catch (err) {
     $('#app').innerHTML = '';
     $('#app').append(el('div', { class: 'banner fail' },

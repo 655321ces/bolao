@@ -98,6 +98,11 @@ tr.clickable:hover td { background: var(--surface-2); }
 .pill.gv { background: rgba(120,170,255,.12); border-color: #4a6bbf; color: #8fb0ff; }
 .pill.pending { background: var(--surface-2); }
 .pill.zero { opacity: .6; }
+/* Ao vivo (placar parcial / ranking provisório) */
+.pill.live { background: rgba(255,107,107,.16); border-color: var(--bad); color: var(--bad); font-weight: 600; animation: livepulse 1.6s ease-in-out infinite; }
+.pill.live.mini { margin-left: 6px; font-size: .62rem; padding: 0 6px; text-transform: lowercase; }
+.banner.live-banner { background: rgba(255,107,107,.10); border: 1px solid var(--bad); color: var(--bad); }
+@keyframes livepulse { 0%,100% { opacity: 1; } 50% { opacity: .55; } }
 /* Resultado mandante/empate/visitante (view "Por jogo") */
 .out-home { color: var(--accent); }
 .out-draw { color: var(--gold); }

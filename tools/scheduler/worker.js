@@ -1,32 +1,47 @@
 // ============================================================
-// Bolão Copa 2026 — Cloudflare Worker (gatilho confiável dos resultados)
-// A cada 2 min (Cron Trigger), lê fixtures.json + results.json do repo e, se
-// algum jogo está na JANELA de término sem placar, dispara a Action
-// (workflow_dispatch). Para sozinho quando o placar entra. Sem desperdício.
+// Bolão Copa 2026 — Cloudflare Worker (placares quase-realtime)
+// A cada 1 min (Cron Trigger), durante a faixa dos jogos, lê fixtures.json +
+// teams.aliases.json do repo, consulta a football-data.org (jogos AO VIVO e
+// finalizados) e faz UPSERT direto na tabela `results` do Supabase. O site lê
+// de lá — sem GitHub Action, sem commit, sem deploy no caminho quente.
 //
 // Deploy: painel da Cloudflare (Workers & Pages) — ver README.md desta pasta.
-// Secrets necessários: GH_PAT (fine-grained: repo bolao, Actions=RW, Contents=RO).
-// Cron Trigger: */2 * * * *
+// Secrets necessários:
+//   GH_PAT                      (fine-grained: repo bolao, Contents=RO — lê fixtures/aliases)
+//   FOOTBALL_API_KEY            (football-data.org)
+//   SUPABASE_URL                (Project URL)
+//   SUPABASE_SERVICE_ROLE_KEY   (chave service_role — ignora RLS para escrever)
+// Cron Trigger: * * * * *
 // ============================================================
 
 const OWNER = '655321ces';
 const REPO = 'bolao';
-const FIXTURE_YEAR = 2026;
-const BRT_OFFSET_MIN = 180;        // BRT = UTC-3 → instante UTC = hora BRT + 3h
-const WINDOW_MIN = [105, 420];     // de ~5 min antes do apito (~110) até +7h: cobre prorrogação/pênaltis + atraso em jogo (parada climática etc.)
-const ACTIVE_UTC_HOURS = [17, 23, 0, 7]; // gate barato: só checa de 17:00–07:59 UTC (faixa dos jogos)
-
-function kickoffMs(date) {
-  const m = /^(\d{2})\/(\d{2})\s+(\d{1,2})h(\d{2})?$/.exec(date || '');
-  if (!m) return NaN;
-  return Date.UTC(FIXTURE_YEAR, +m[2] - 1, +m[1], +m[3], +m[4] || 0) + BRT_OFFSET_MIN * 60000;
-}
+const COMP = 'WC';                         // competição na football-data.org
+const ACTIVE_UTC_HOURS = [17, 23, 0, 7];   // gate barato: só consulta de 17:00–07:59 UTC (faixa dos jogos)
+const LIVE_STATUSES = 'IN_PLAY,PAUSED,FINISHED';
 
 function inActiveHours(d) {
   const h = d.getUTCHours();
   return (h >= ACTIVE_UTC_HOURS[0] && h <= ACTIVE_UTC_HOURS[1]) || (h >= ACTIVE_UTC_HOURS[2] && h <= ACTIVE_UTC_HOURS[3]);
 }
 
+// ---------- casamento de times (portado de tools/results/fetch.mjs) ----------
+const norm = (s) => String(s || '')
+  .normalize('NFD').replace(/[̀-ͯ]/g, '')
+  .toLowerCase().replace(/\s+/g, ' ').trim();
+
+function resolveTeam(apiTeam, aliases, fixtureByNorm) {
+  if (apiTeam.tla && aliases.byTla[apiTeam.tla]) return aliases.byTla[apiTeam.tla];
+  for (const cand of [apiTeam.name, apiTeam.shortName]) {
+    if (!cand) continue;
+    const n = norm(cand);
+    if (aliases.byName[n]) return aliases.byName[n];
+    if (fixtureByNorm[n]) return fixtureByNorm[n]; // casa direto com o nome do fixture
+  }
+  return null;
+}
+
+// ---------- leitura do repo via API do GitHub (dados frescos) ----------
 function ghHeaders(env) {
   return {
     'Authorization': `Bearer ${env.GH_PAT}`,
@@ -45,36 +60,83 @@ async function ghContentsJSON(path, env) {
   return JSON.parse(new TextDecoder().decode(bytes)); // decodifica UTF-8 (acentos)
 }
 
+// ---------- escrita no Supabase (upsert REST, mesmo padrão de export-bets.mjs) ----------
+async function supaUpsert(rows, env) {
+  const base = (env.SUPABASE_URL || '').replace(/\/+$/, '');
+  const r = await fetch(`${base}/rest/v1/results`, {
+    method: 'POST',
+    headers: {
+      apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+      'Content-Type': 'application/json',
+      Prefer: 'resolution=merge-duplicates', // upsert pela PK (game_id)
+    },
+    body: JSON.stringify(rows),
+  });
+  if (!r.ok) throw new Error(`upsert -> ${r.status}: ${await r.text()}`);
+}
+
 async function tick(env) {
   const now = new Date();
   if (!inActiveHours(now)) return { skipped: 'fora da faixa' };
 
-  const [fixtures, results] = await Promise.all([
+  const [fixtures, aliases] = await Promise.all([
     ghContentsJSON('data/fixtures.json', env),
-    ghContentsJSON('data/results.json', env),
+    ghContentsJSON('tools/results/teams.aliases.json', env),
   ]);
 
-  const t = now.getTime();
-  const pendentes = Object.keys(fixtures).filter((gid) => {
-    if (results[gid]) return false;
-    const ks = kickoffMs(fixtures[gid].date);
-    if (isNaN(ks)) return false;
-    const ageMin = (t - ks) / 60000;
-    return ageMin >= WINDOW_MIN[0] && ageMin <= WINDOW_MIN[1];
-  });
+  // índices do fixture (mesma construção do fetch.mjs)
+  const fixtureByNorm = {};
+  const fixtureBySet = {};   // "a|b" (chaves ordenadas) -> gid
+  for (const gid of Object.keys(fixtures)) {
+    const f = fixtures[gid];
+    fixtureByNorm[norm(f.home)] = f.home;
+    fixtureByNorm[norm(f.away)] = f.away;
+    fixtureBySet[[norm(f.home), norm(f.away)].sort().join('|')] = gid;
+  }
 
-  if (!pendentes.length) return { dispatched: false };
+  // jogos ao vivo + finalizados
+  const url = `https://api.football-data.org/v4/competitions/${COMP}/matches?status=${LIVE_STATUSES}`;
+  const res = await fetch(url, { headers: { 'X-Auth-Token': env.FOOTBALL_API_KEY } });
+  if (res.status === 401 || res.status === 403) {
+    throw new Error(`football-data ${res.status}: token inválido ou plano sem acesso a ${COMP}`);
+  }
+  if (!res.ok) throw new Error(`football-data ${res.status}`);
+  const data = await res.json();
+  const matches = data.matches || [];
 
-  const r = await fetch(
-    `https://api.github.com/repos/${OWNER}/${REPO}/actions/workflows/results.yml/dispatches`,
-    { method: 'POST', headers: ghHeaders(env), body: JSON.stringify({ ref: 'main', inputs: { dry_run: 'false' } }) },
-  );
-  if (!r.ok) throw new Error(`dispatch -> ${r.status}: ${await r.text()}`);
-  return { dispatched: true, pendentes };
+  const now2 = new Date().toISOString();
+  const rows = [];
+  const unresolved = [];
+  for (const m of matches) {
+    const ft = m.score && m.score.fullTime;      // durante o jogo, fullTime carrega o placar corrente
+    if (!ft || ft.home == null || ft.away == null) continue;
+    const hn = resolveTeam(m.homeTeam, aliases, fixtureByNorm);
+    const an = resolveTeam(m.awayTeam, aliases, fixtureByNorm);
+    if (!hn || !an) { unresolved.push(`${m.homeTeam && m.homeTeam.name} x ${m.awayTeam && m.awayTeam.name}`); continue; }
+    const gid = fixtureBySet[[norm(hn), norm(an)].sort().join('|')];
+    if (!gid) { unresolved.push(`sem fixture: ${hn} x ${an}`); continue; }
+
+    const f = fixtures[gid];
+    // reorienta para a ordem mandante×visitante do fixture
+    const score = norm(f.home) === norm(hn) ? [ft.home, ft.away] : [ft.away, ft.home];
+    rows.push({
+      game_id: +gid,
+      home: score[0],
+      away: score[1],
+      status: m.status,
+      minute: m.minute == null ? null : m.minute,
+      updated_at: now2,
+    });
+  }
+
+  if (!rows.length) return { upserted: 0, unresolved };
+  await supaUpsert(rows, env);
+  return { upserted: rows.length, games: rows.map((r) => r.game_id), unresolved };
 }
 
 export default {
-  // disparado pelo Cron Trigger (*/2 * * * *)
+  // disparado pelo Cron Trigger (* * * * *)
   async scheduled(event, env, ctx) {
     ctx.waitUntil(tick(env).then((x) => console.log('tick', JSON.stringify(x))).catch((e) => console.log('erro', e.message)));
   },

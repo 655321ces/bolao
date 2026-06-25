@@ -150,6 +150,27 @@ drop trigger if exists bets_touch on public.bets;
 create trigger bets_touch before update on public.bets
   for each row execute function public.touch_updated_at();
 
+-- ---------- results: placares (ao vivo + final), escritos pelo Worker ----------
+-- O Cloudflare Worker faz upsert aqui a partir da football-data.org (ver
+-- tools/scheduler/worker.js). status: IN_PLAY/PAUSED enquanto rola; FINISHED no fim.
+-- Diferente das demais, o SELECT é liberado para `anon`: o ranking público
+-- (index.html) é SEM login e lê esta tabela direto. Placar é informação pública.
+-- Escrita só via service_role (sem policy de insert/update aqui).
+create table if not exists public.results (
+  game_id    int  primary key references public.games(id) on delete cascade,
+  home       int  not null check (home between 0 and 99),
+  away       int  not null check (away between 0 and 99),
+  status     text not null default 'FINISHED',  -- IN_PLAY | PAUSED | FINISHED
+  minute     int,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.results enable row level security;
+
+drop policy if exists results_select_public on public.results;
+create policy results_select_public on public.results
+  for select to anon, authenticated using (true);
+
 -- ---------- roster: identidades canônicas (auto-reivindicação) ----------
 -- Semeado com os participantes históricos (ver seed-roster.sql). No 1º login a
 -- pessoa escolhe "sou eu = Fulano", o que liga a conta Google ao nome canônico

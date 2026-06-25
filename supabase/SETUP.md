@@ -35,7 +35,8 @@ A ordem abaixo é o que **só você (operador)** precisa fazer — o código já
 ## 3. Criar as tabelas e semear os dados
 
 No Supabase: **SQL Editor → New query**, e rode nesta ordem:
-1. Cole e rode `supabase/schema.sql` (tabelas + RLS + trigger de perfil + roster/claim).
+1. Cole e rode `supabase/schema.sql` (tabelas + RLS + trigger de perfil + roster/claim +
+   a tabela **`results`** dos placares — ver "Placares quase-realtime" abaixo).
 2. Cole e rode `supabase/seed-games.sql` (popula os 72 jogos; idempotente).
 3. Cole e rode `supabase/seed-roster.sql` (popula os 15 participantes para a
    auto-reivindicação de identidade; idempotente).
@@ -84,7 +85,33 @@ A partir daí: as pessoas palpitam em `palpites.html`, a ponte exporta os jogos 
 para `data/bets.json`, e o ranking estático segue funcionando — inclusive se o Supabase
 cair, ele lê o último export.
 
+## Placares quase-realtime (Supabase como fonte dos resultados)
+
+O ranking público lê os placares **direto da tabela `results` do Supabase** (SELECT
+liberado para `anon` — placar é informação pública). Quem escreve é o **Cloudflare
+Worker** (`tools/scheduler/worker.js`): a cada 1 min, durante a faixa dos jogos, ele
+consulta a football-data.org (jogos **ao vivo** e finalizados) e faz upsert na tabela.
+Sem GitHub Action, sem commit, sem deploy no caminho quente — o placar entra em ~1 min.
+
+Para ativar:
+1. A tabela `results` já é criada pelo `supabase/schema.sql` (passo 3 acima). Confirme
+   que um `GET {url}/rest/v1/results?select=*` com a **anon key** retorna `200` (policy
+   `anon` ok) — mesmo vazio.
+2. Configure o Worker com os secrets `GH_PAT`, `FOOTBALL_API_KEY`, `SUPABASE_URL` e
+   `SUPABASE_SERVICE_ROLE_KEY` e o Cron `* * * * *` — ver `tools/scheduler/README.md`.
+3. **Live depende do plano** da football-data: confirme que sua chave retorna scores de
+   jogos `IN_PLAY` para a competição `WC`. Se só der `FINISHED`, tudo funciona — só não
+   há "ao vivo" (o placar final entra mais rápido que o antigo commit-pra-deploy).
+
+O front é **resiliente**: se o Supabase estiver fora (ou a tabela ainda não existir), o
+ranking cai automaticamente para `data/results.json` (o snapshot versionado no Git).
+Esse snapshot continua sendo mantido pela GitHub Action `results.yml` rodando em baixa
+frequência (3 crons/dia, só FINISHED) — agora apenas como **backup**, não no caminho quente.
+
+O **ranking ao vivo é provisório**: jogos `IN_PLAY` somam pontos parciais com selo
+"AO VIVO", e os pontos se firmam quando o jogo vira `FINISHED`.
+
 ## O que pode ser aposentado depois (não agora)
 
 O userscript de import do bolaogratis (`tools/userscript/`) fica como fallback durante o
-paralelo. A automação de **resultados** continua **igual** — não muda.
+paralelo.

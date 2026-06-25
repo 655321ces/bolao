@@ -1,10 +1,17 @@
-# Gatilho dos resultados — Cloudflare Worker
+# Placares quase-realtime — Cloudflare Worker
 
-O `schedule` do GitHub Actions é "melhor esforço" e, neste repo, dispara poucas
-vezes ao dia em horários imprevisíveis (perdeu vários términos de jogo). Este
-Worker é o gatilho **confiável**: roda a cada 2 min, e quando um jogo está na
-janela de término **sem placar**, dispara a Action (`workflow_dispatch`). Para
-sozinho quando o placar entra. A Action (`fetch.mjs`) não muda.
+Este Worker é o **gatilho principal** dos resultados. A cada 1 min, dentro da
+faixa dos jogos, ele consulta a football-data.org (jogos **ao vivo** e
+finalizados) e faz **upsert** direto na tabela `results` do Supabase. O site
+(`index.html`) lê de lá — sem GitHub Action, sem commit, sem deploy no caminho
+quente. O placar entra no Supabase em ~1 min do gol.
+
+A football-data.org **não tem webhook** (é polling puro), então pollar rápido +
+escrever direto no banco é o mais perto de realtime que dá.
+
+> A GitHub Action `results.yml` continua rodando em **baixa frequência** (3 crons/dia)
+> só como **snapshot de backup** do `data/results.json` (FINISHED) versionado no Git.
+> Não está mais no caminho quente.
 
 Tudo é feito pelo **painel web da Cloudflare** — não precisa de ferramenta local.
 
@@ -13,9 +20,10 @@ Tudo é feito pelo **painel web da Cloudflare** — não precisa de ferramenta l
 GitHub → Settings → Developer settings → **Fine-grained tokens** → Generate:
 - **Repository access:** Only select repositories → `bolao`.
 - **Permissions:**
-  - **Actions:** Read and write  (para disparar o workflow)
-  - **Contents:** Read-only       (para ler fixtures.json/results.json)
+  - **Contents:** Read-only  (para ler `fixtures.json` e `teams.aliases.json`)
 - Gere e copie o token (`github_pat_…`).
+
+> Não precisa mais de **Actions: Read and write** — o Worker não dispara mais workflow.
 
 ## 2. Criar o Worker
 
@@ -23,25 +31,47 @@ GitHub → Settings → Developer settings → **Fine-grained tokens** → Gener
 1. Dê um nome (ex.: `bolao-scheduler`) → **Deploy** (cria o "hello world").
 2. **Edit code** → apague tudo e cole o conteúdo de [`worker.js`](worker.js) → **Deploy**.
 
-## 3. Secret + Cron Trigger
+## 3. Secrets + Cron Trigger
 
-No Worker → **Settings**:
-- **Variables and Secrets** → Add → tipo **Secret**, nome **`GH_PAT`**, valor = o token do passo 1 → Save.
-- **Triggers → Cron Triggers** → **Add Cron Trigger** → expressão **`*/2 * * * *`** → Save.
+No Worker → **Settings → Variables and Secrets**, adicione (tipo **Secret**):
+- **`GH_PAT`** = o token do passo 1.
+- **`FOOTBALL_API_KEY`** = sua chave da football-data.org.
+- **`SUPABASE_URL`** = Project URL do Supabase.
+- **`SUPABASE_SERVICE_ROLE_KEY`** = chave **service_role** (Project Settings → API).
+  É a chave que ignora o RLS para escrever — **nunca** vai pro front-end.
 
-## 4. Testar
+No Worker → **Settings → Triggers → Cron Triggers** → **Add** → expressão
+**`* * * * *`** (1 min) → Save.
 
-- Abra a URL `https://bolao-scheduler.<seu-subdominio>.workers.dev` no navegador: ele roda um "tick" na hora e retorna um JSON.
-  - Fora do horário de jogo: `{"skipped":"fora da faixa"}` ou `{"dispatched":false}`.
-  - Com um jogo na janela sem placar: `{"dispatched":true,"pendentes":["NN"]}` e a Action roda em seguida (veja em Actions no GitHub).
+## 4. Pré-requisito: a tabela `results`
+
+Rode o `supabase/schema.sql` atualizado no SQL Editor (cria a tabela `results`
+com SELECT liberado para `anon`). Ver `supabase/SETUP.md`.
+
+## 5. Testar
+
+- Abra a URL `https://bolao-scheduler.<seu-subdominio>.workers.dev`: roda um "tick"
+  na hora e retorna um JSON.
+  - Fora do horário de jogo: `{"skipped":"fora da faixa"}`.
+  - Sem jogo ao vivo/finalizado novo: `{"upserted":0,...}`.
+  - Com jogos: `{"upserted":N,"games":[...]}` e as linhas aparecem na tabela
+    `results` do Supabase. Valide a reorientação do placar (mandante×visitante)
+    contra um jogo conhecido.
 
 ## Parâmetros (no `worker.js`)
-- `WINDOW_MIN = [105, 210]` — começa ~5 min antes do apito (~110 min) e segue até cobrir prorrogação/pênaltis + lag da fonte. Ajuste se quiser.
-- `ACTIVE_UTC_HOURS` — gate barato pra nem consultar o GitHub fora da faixa dos jogos (17:00–07:59 UTC).
-- Cadência (2 min) = o Cron Trigger `*/2`. Para mudar, edite o trigger.
+- `ACTIVE_UTC_HOURS` — gate barato pra nem consultar fora da faixa dos jogos
+  (17:00–07:59 UTC). 1 req/min só dentro dessa faixa (football-data free = 10 req/min).
+- `LIVE_STATUSES` — `IN_PLAY,PAUSED,FINISHED` (o que é buscado e gravado).
+- `COMP` — competição na football-data (`WC`).
+- Cadência (1 min) = o Cron Trigger `* * * * *`. Para mudar, edite o trigger.
 
 ## Observações
-- O `schedule` do GitHub no `results.yml` fica como **rede de segurança** (dispara de vez em quando; a guarda no `fetch.mjs` evita trabalho à toa).
-- O Worker lê os dados **frescos** via API do GitHub (sem cache), então para de disparar ~2 min após o placar ser commitado.
-- Custo: free tier da Cloudflare (cron + ~720 ticks/dia, a maioria saindo no gate de horário sem nem chamar o GitHub).
-- **Mata-mata:** como tudo deriva do `fixtures.json`, ao adicionar os jogos das eliminatórias o Worker já cobre os novos horários — sem mexer no Worker.
+- **Live depende do plano:** confirme que sua `FOOTBALL_API_KEY` retorna scores de
+  jogos `IN_PLAY` para a competição `WC`. Se o plano só der `FINISHED`, tudo segue
+  funcionando — só não há "ao vivo" (placar final entra mais rápido que o antigo
+  commit-pra-deploy).
+- O upsert é **idempotente** (PK = `game_id`): re-gravar o mesmo placar é inofensivo.
+- Custo: free tier da Cloudflare (cron + ~1440 ticks/dia, a maioria saindo no gate
+  de horário sem chamar nada externo).
+- **Mata-mata:** tudo deriva do `fixtures.json` — ao adicionar os jogos das
+  eliminatórias o Worker já cobre os novos horários, sem mexer no Worker.
