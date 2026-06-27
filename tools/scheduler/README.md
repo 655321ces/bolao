@@ -3,15 +3,19 @@
 Este Worker é o **gatilho principal** dos resultados. A cada 1 min, dentro da
 faixa dos jogos, ele consulta a football-data.org (jogos **ao vivo** e
 finalizados) e faz **upsert** direto na tabela `results` do Supabase. O site
-(`index.html`) lê de lá — sem GitHub Action, sem commit, sem deploy no caminho
-quente. O placar entra no Supabase em ~1 min do gol.
+(`index.html`) lê de lá. O placar entra no Supabase em ~1 min do gol.
 
 A football-data.org **não tem webhook** (é polling puro), então pollar rápido +
 escrever direto no banco é o mais perto de realtime que dá.
 
-> A GitHub Action `results.yml` continua rodando em **baixa frequência** (3 crons/dia)
-> só como **snapshot de backup** do `data/results.json` (FINISHED) versionado no Git.
-> Não está mais no caminho quente.
+Ele também **espelha os jogos FINISHED no `data/results.json`** (backup versionado
+no Git) de forma **event-driven**: a cada tick compara os finalizados com o arquivo
+e só faz **1 commit quando um placar novo/diferente entra** (jogo virou FINISHED).
+Sem job periódico, sem gastar quota da API (reusa o que já buscou), ~1 commit por
+jogo finalizado. O `results.json` é o **fallback** do site se o Supabase cair.
+
+> A GitHub Action `results.yml` não roda mais em schedule — ficou só como rede de
+> segurança **manual** (`workflow_dispatch`), caso o Worker fique fora do ar.
 
 Tudo é feito pelo **painel web da Cloudflare** — não precisa de ferramenta local.
 
@@ -20,10 +24,14 @@ Tudo é feito pelo **painel web da Cloudflare** — não precisa de ferramenta l
 GitHub → Settings → Developer settings → **Fine-grained tokens** → Generate:
 - **Repository access:** Only select repositories → `bolao`.
 - **Permissions:**
-  - **Contents:** Read-only  (para ler `fixtures.json` e `teams.aliases.json`)
+  - **Contents:** **Read and write**  (lê `fixtures.json`/`teams.aliases.json` e **commita** `results.json`)
 - Gere e copie o token (`github_pat_…`).
 
-> Não precisa mais de **Actions: Read and write** — o Worker não dispara mais workflow.
+> A escrita (Contents RW) é o que permite o Worker espelhar os FINISHED no
+> `results.json`. Se já tinha um token antigo com Contents=Read-only, **gere um novo**
+> (ou ajuste a permissão) e atualize o secret `GH_PAT` no Worker — senão o commit
+> falha com 403 (e o `committed` no tick aparece como `erro: PUT ... -> 403`).
+> Não precisa de **Actions** (o Worker não dispara mais workflow).
 
 ## 2. Criar o Worker
 
@@ -54,9 +62,11 @@ com SELECT liberado para `anon`). Ver `supabase/SETUP.md`.
   na hora e retorna um JSON.
   - Fora do horário de jogo: `{"skipped":"fora da faixa"}`.
   - Sem jogo ao vivo/finalizado novo: `{"upserted":0,...}`.
-  - Com jogos: `{"upserted":N,"games":[...]}` e as linhas aparecem na tabela
-    `results` do Supabase. Valide a reorientação do placar (mandante×visitante)
-    contra um jogo conhecido.
+  - Com jogos: `{"upserted":N,"games":[...],"committed":...}` e as linhas aparecem
+    na tabela `results` do Supabase. Valide a reorientação do placar
+    (mandante×visitante) contra um jogo conhecido.
+  - **`committed`**: `false` (nada novo a espelhar), uma lista de game_ids
+    (commitou esses no `results.json`) ou `erro: ...` (ex.: PAT sem Contents RW).
 
 ## Parâmetros (no `worker.js`)
 - `ACTIVE_UTC_HOURS` — gate barato pra nem consultar fora da faixa dos jogos

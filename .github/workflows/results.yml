@@ -1,12 +1,9 @@
 name: Resultados automáticos
 
 on:
-  schedule:
-    # 3 disparos de backup — o Cloudflare Worker (*/2 min) é o gatilho principal.
-    # início da janela de jogos (UTC), fim da janela e meio do horário morto.
-    - cron: '55 17 * * *'
-    - cron: '25 6 * * *'
-    - cron: '0 12 * * *'
+  # Sem schedule: o Cloudflare Worker (tools/scheduler/worker.js) é quem mantém o
+  # results.json fresco — espelha cada FINISHED por commit, event-driven. Esta
+  # Action fica só como rede de segurança MANUAL (rodar se o Worker estiver fora).
   workflow_dispatch:
     inputs:
       dry_run:

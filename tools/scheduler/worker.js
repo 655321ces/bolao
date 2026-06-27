@@ -5,9 +5,14 @@
 // finalizados) e faz UPSERT direto na tabela `results` do Supabase. O site lê
 // de lá — sem GitHub Action, sem commit, sem deploy no caminho quente.
 //
+// Além disso, espelha os jogos FINISHED de volta no data/results.json (backup
+// versionado no Git) de forma EVENT-DRIVEN: só commita quando um placar novo/
+// diferente entra (ex.: jogo passou de LIVE p/ FINISHED). Sem job periódico,
+// sem gastar quota da API (reusa o que já buscou), ~1 commit por jogo finalizado.
+//
 // Deploy: painel da Cloudflare (Workers & Pages) — ver README.md desta pasta.
 // Secrets necessários:
-//   GH_PAT                      (fine-grained: repo bolao, Contents=RO — lê fixtures/aliases)
+//   GH_PAT                      (fine-grained: repo bolao, Contents=READ-WRITE — lê fixtures/aliases e commita results.json)
 //   FOOTBALL_API_KEY            (football-data.org)
 //   SUPABASE_URL                (Project URL)
 //   SUPABASE_SERVICE_ROLE_KEY   (chave service_role — ignora RLS para escrever)
@@ -44,7 +49,7 @@ function resolveTeam(apiTeam, aliases, fixtureByNorm) {
   return null;
 }
 
-// ---------- leitura do repo via API do GitHub (dados frescos) ----------
+// ---------- leitura/escrita do repo via API do GitHub (dados frescos) ----------
 function ghHeaders(env) {
   return {
     'Authorization': `Bearer ${env.GH_PAT}`,
@@ -54,13 +59,41 @@ function ghHeaders(env) {
   };
 }
 
-async function ghContentsJSON(path, env) {
+// retorna { json, sha } — o sha é necessário para commitar (PUT) por cima
+async function ghGetFile(path, env) {
   const r = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}?ref=main`, { headers: ghHeaders(env) });
   if (!r.ok) throw new Error(`GET ${path} -> ${r.status}`);
   const meta = await r.json();
   const bin = atob(meta.content.replace(/\s/g, ''));
   const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
-  return JSON.parse(new TextDecoder().decode(bytes)); // decodifica UTF-8 (acentos)
+  return { json: JSON.parse(new TextDecoder().decode(bytes)), sha: meta.sha }; // decodifica UTF-8 (acentos)
+}
+
+async function ghContentsJSON(path, env) {
+  return (await ghGetFile(path, env)).json;
+}
+
+// base64 de uma string UTF-8 (btoa só lida com latin1 → encode primeiro)
+function toBase64Utf8(str) {
+  const bytes = new TextEncoder().encode(str);
+  let bin = '';
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin);
+}
+
+async function ghPutFile(path, contentStr, sha, message, env) {
+  const r = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
+    method: 'PUT',
+    headers: { ...ghHeaders(env), 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      message,
+      content: toBase64Utf8(contentStr),
+      sha,
+      branch: 'main',
+      committer: { name: 'bolao-bot', email: 'github-actions[bot]@users.noreply.github.com' },
+    }),
+  });
+  if (!r.ok) throw new Error(`PUT ${path} -> ${r.status}: ${await r.text()}`);
 }
 
 // ---------- escrita no Supabase (upsert REST, mesmo padrão de export-bets.mjs) ----------
@@ -83,9 +116,10 @@ async function tick(env) {
   const now = new Date();
   if (!inActiveHours(now)) return { skipped: 'fora da faixa' };
 
-  const [fixtures, aliases] = await Promise.all([
+  const [fixtures, aliases, resultsFile] = await Promise.all([
     ghContentsJSON('data/fixtures.json', env),
     ghContentsJSON('tools/results/teams.aliases.json', env),
+    ghGetFile('data/results.json', env),   // { json, sha } — para o espelho event-driven
   ]);
 
   // índices do fixture (mesma construção do fetch.mjs)
@@ -110,6 +144,7 @@ async function tick(env) {
 
   const now2 = new Date().toISOString();
   const rows = [];
+  const finished = {};   // gid -> [h,a] dos FINISHED (p/ espelhar no results.json)
   const unresolved = [];
   for (const m of matches) {
     if (!KEEP_STATUSES.has(m.status)) continue;  // pula TIMED/SCHEDULED/adiados/cancelados
@@ -132,11 +167,35 @@ async function tick(env) {
       minute: m.minute == null ? null : m.minute,
       updated_at: now2,
     });
+    if (m.status === 'FINISHED') finished[gid] = score;
   }
 
-  if (!rows.length) return { upserted: 0, unresolved };
-  await supaUpsert(rows, env);
-  return { upserted: rows.length, games: rows.map((r) => r.game_id), unresolved };
+  // caminho quente: Supabase (LIVE + FINISHED)
+  let upserted = 0;
+  if (rows.length) { await supaUpsert(rows, env); upserted = rows.length; }
+
+  // espelho event-driven: só commita results.json quando um FINISHED entra/muda
+  let committed = false;
+  try {
+    const merged = { ...resultsFile.json };
+    const changed = [];
+    for (const gid of Object.keys(finished)) {
+      const s = finished[gid], prev = merged[gid];
+      if (!prev || prev[0] !== s[0] || prev[1] !== s[1]) { merged[gid] = s; changed.push(+gid); }
+    }
+    if (changed.length) {
+      const sorted = {};
+      for (const gid of Object.keys(merged).sort((a, b) => +a - +b)) sorted[gid] = merged[gid];
+      const text = JSON.stringify(sorted, null, 2) + '\n';
+      changed.sort((a, b) => a - b);
+      await ghPutFile('data/results.json', text, resultsFile.sha, `Resultados: jogo(s) ${changed.join(',')} (Cloudflare Worker)`, env);
+      committed = changed;
+    }
+  } catch (e) {
+    committed = 'erro: ' + e.message;   // não derruba o caminho quente (Supabase já foi)
+  }
+
+  return { upserted, games: rows.map((r) => r.game_id), unresolved, committed };
 }
 
 export default {
