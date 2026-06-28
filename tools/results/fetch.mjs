@@ -99,7 +99,8 @@ async function main() {
   const unresolved = [];
 
   for (const m of matches) {
-    const ft = m.score && m.score.fullTime;
+    const sc = m.score || {};
+    const ft = sc.fullTime;
     if (!ft || ft.home == null || ft.away == null) continue;
     const hn = resolveTeam(m.homeTeam, aliases, fixtureByNorm);
     const an = resolveTeam(m.awayTeam, aliases, fixtureByNorm);
@@ -111,11 +112,23 @@ async function main() {
     if (!gid) { unresolved.push(`sem fixture para ${hn} x ${an}`); continue; }
 
     const f = fixtures[gid];
+    // placar base: em pênaltis (mata-mata), usa o placar nivelado de fim de prorrogação se houver
+    const pen = sc.duration === 'PENALTY_SHOOTOUT' || (sc.penalties && sc.penalties.home != null);
+    let base = [ft.home, ft.away];
+    if (pen && sc.extraTime && sc.extraTime.home != null) base = [sc.extraTime.home, sc.extraTime.away];
     // reorienta para a ordem do fixture
-    const score = norm(f.home) === norm(hn) ? [ft.home, ft.away] : [ft.away, ft.home];
+    const apiHomeIsFixtureHome = norm(f.home) === norm(hn);
+    const sco = apiHomeIsFixtureHome ? [base[0], base[1]] : [base[1], base[0]];
+    // quem avança nos pênaltis: só mata-mata, jogo empatado decidido nos pênaltis
+    let advances = null;
+    if (f.phase && pen && sco[0] === sco[1]) {
+      const winnerSide = sc.winner === 'HOME_TEAM' ? 'home' : sc.winner === 'AWAY_TEAM' ? 'away' : null;
+      if (winnerSide) advances = apiHomeIsFixtureHome ? winnerSide : (winnerSide === 'home' ? 'away' : 'home');
+    }
+    const score = advances ? [sco[0], sco[1], advances] : [sco[0], sco[1]];
 
     const prev = updated[gid];
-    if (!prev || prev[0] !== score[0] || prev[1] !== score[1]) {
+    if (!prev || prev[0] !== score[0] || prev[1] !== score[1] || (prev[2] || null) !== (score[2] || null)) {
       changes.push(`jogo ${gid} (${f.home} x ${f.away}): ${prev ? prev.join('x') + ' → ' : ''}${score.join('x')}`);
       updated[gid] = score;
     }

@@ -52,9 +52,48 @@ Lidas de `data/config.json` (não hardcoded) e aplicadas em `engine.js`. Para ca
   - **Saldo** de gols igual (só conta se a direção estiver certa): +3
   - **Bônus gol mandante** (`ph==rh`): +1 — independente
   - **Bônus gol visitante** (`pa==ra`): +1 — independente
+- **Bônus Classificado (mata-mata)** = +2: só quem **palpitou empate** e acertou
+  **quem passou nos pênaltis**. Soma **por cima do teto** (cravar 1x1 + acertar o
+  classificado = 12). Detalhes na seção Mata-mata.
 - `null` = não palpitou = 0 pontos, não conta como exato.
 
 **Desempate do ranking** (cascata, cada critério só desempata o anterior): pontos → placares exatos → tendências (acertou a direção) → gols do vencedor. Empate em tudo compartilha a posição (padrão "1-2-2-4").
+
+## Mata-mata (32-avos em diante)
+
+A partir do mata-mata não há empate: se o jogo termina igual no tempo
+normal/prorrogação, os **pênaltis** decidem quem avança. No bolão:
+
+- **Palpitar empate exige escolher quem passa.** Em `palpites.html`, ao digitar
+  um placar de empate num jogo de mata-mata, aparece o seletor **"Passa nos
+  pênaltis: mandante / visitante"**. Acertar quem passou rende o **bônus
+  Classificado (+2)** — palpitar empate **não** tira pontos; é a forma de
+  disputar esse bônus. Quem crava um placar **decisivo** já é premiado pelo
+  vencedor/placar (esse bônus não se aplica).
+- **Formato dos dados:** um **3º elemento** opcional nos arrays de placar marca o
+  lado que passa (`"home"`/`"away"`), só em empate de mata-mata:
+  - palpite: `bets.json` → `[1, 1, "home"]`
+  - resultado nos pênaltis: `results.json` → `[1, 1, "home"]`
+  - fixture de mata-mata: campo **`phase`** (`R32`/`R16`/`QF`/`SF`/`3P`/`F`); a
+    presença de `phase` é o sinal de "é mata-mata" (jogos de grupo seguem com
+    `group`+`round`). Arrays de 2 elementos continuam válidos sem migração.
+
+### Runbook por fase (operador)
+
+1. **Fixtures:** **automático.** O Cloudflare Worker (`tools/scheduler/`) detecta
+   cada confronto de mata-mata assim que ele é definido (lê o `stage` da
+   football-data.org), e sozinho commita o jogo em `data/fixtures.json` (ids
+   `73+`, campo `phase`, ordem mandante×visitante da football-data) **e** faz
+   upsert na tabela `games` do Supabase — o jogo já aparece em `palpites.html`.
+   *Fallback manual* (remarcação exótica ou time que não resolveu — aparece em
+   `unresolved` no retorno do Worker; complete `tools/results/teams.aliases.json`):
+   editar `data/fixtures.json` à mão e rodar
+   `node tools/seed-games.mjs > supabase/seed-games.sql` no Supabase.
+2. **Palpites:** as pessoas palpitam em `palpites.html`; em empate escolhem quem
+   passa. A ponte `tools/export-bets.mjs` leva para `data/bets.json`.
+3. **Resultados:** o Cloudflare Worker preenche sozinho, inclusive o "quem
+   passou" nos pênaltis (lê `score.winner`/`duration` da football-data.org);
+   fallback manual via `tools/results/fetch.mjs`.
 
 ## Identidade
 

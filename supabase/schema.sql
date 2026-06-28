@@ -75,15 +75,23 @@ end;
 $$;
 
 -- ---------- games: semeado de fixtures.json (ver seed-games.sql) ----------
+-- Mata-mata: `phase` ('R32'..'F') marca jogo eliminatório; nesses, `round`/`grp`
+-- ficam nulos. Fase de grupos continua com round (1-3) + grp (A-L) e phase nulo.
 create table if not exists public.games (
   id       int primary key,
   home     text not null,
   away     text not null,
   kickoff  timestamptz not null,
   locks_at timestamptz not null,  -- = kickoff por padrão; ajustável p/ antecedência
-  round    int not null,
-  grp      text not null
+  round    int,
+  grp      text,
+  phase    text
 );
+
+-- migração de tabelas já existentes (idempotente)
+alter table public.games add column if not exists phase text;
+alter table public.games alter column round drop not null;
+alter table public.games alter column grp drop not null;
 
 alter table public.games enable row level security;
 
@@ -94,14 +102,25 @@ create policy games_select_authenticated on public.games
 
 -- ---------- bets: o palpite de cada pessoa por jogo ----------
 -- Linha existente = palpitou. Sem linha = não palpitou (= null no engine).
+-- `advances` ('home'|'away'): em empate de mata-mata, o lado que a pessoa acha
+-- que passa nos pênaltis. Nulo nos demais casos.
 create table if not exists public.bets (
   user_id    uuid not null references auth.users(id) on delete cascade,
   game_id    int  not null references public.games(id) on delete cascade,
   home       int  not null check (home between 0 and 99),
   away       int  not null check (away between 0 and 99),
+  advances   text check (advances is null or advances in ('home','away')),
   updated_at timestamptz not null default now(),
   primary key (user_id, game_id)
 );
+
+-- migração de tabelas já existentes (idempotente)
+alter table public.bets add column if not exists advances text;
+do $$ begin
+  if not exists (select 1 from pg_constraint where conname = 'bets_advances_chk') then
+    alter table public.bets add constraint bets_advances_chk check (advances is null or advances in ('home','away'));
+  end if;
+end $$;
 
 create index if not exists bets_game_idx on public.bets(game_id);
 
@@ -156,14 +175,20 @@ create trigger bets_touch before update on public.bets
 -- Diferente das demais, o SELECT é liberado para `anon`: o ranking público
 -- (index.html) é SEM login e lê esta tabela direto. Placar é informação pública.
 -- Escrita só via service_role (sem policy de insert/update aqui).
+-- `advances` ('home'|'away'): em jogo de mata-mata decidido nos pênaltis, o lado
+-- que avançou (placar fica empatado). Nulo nos demais casos.
 create table if not exists public.results (
   game_id    int  primary key references public.games(id) on delete cascade,
   home       int  not null check (home between 0 and 99),
   away       int  not null check (away between 0 and 99),
   status     text not null default 'FINISHED',  -- IN_PLAY | PAUSED | FINISHED
   minute     int,
+  advances   text check (advances is null or advances in ('home','away')),
   updated_at timestamptz not null default now()
 );
+
+-- migração de tabelas já existentes (idempotente)
+alter table public.results add column if not exists advances text;
 
 alter table public.results enable row level security;
 

@@ -29,6 +29,9 @@ function isoUTC(ms) {
 
 // escapa aspa simples para literal SQL
 const q = (s) => `'${String(s).replace(/'/g, "''")}'`;
+// texto/número que pode faltar (mata-mata não tem grp/round) → NULL
+const qNull = (s) => (s == null ? 'NULL' : q(s));
+const numNull = (n) => (n == null ? 'NULL' : String(n));
 
 const fixturesPath = fileURLToPath(new URL('../data/fixtures.json', import.meta.url));
 const fixtures = JSON.parse(readFileSync(fixturesPath, 'utf8'));
@@ -43,12 +46,13 @@ for (const id of Object.keys(fixtures).sort((a, b) => +a - +b)) {
   }
   const ts = q(isoUTC(ms));
   // locks_at = kickoff por enquanto; ajuste aqui se quiser antecedência
-  rows.push(`  (${id}, ${q(f.home)}, ${q(f.away)}, ${ts}, ${ts}, ${f.round}, ${q(f.group)})`);
+  // mata-mata: round/grp nulos, phase preenchida; grupos: o inverso
+  rows.push(`  (${id}, ${q(f.home)}, ${q(f.away)}, ${ts}, ${ts}, ${numNull(f.round)}, ${qNull(f.group)}, ${qNull(f.phase)})`);
 }
 
 const sql = `-- Gerado por tools/seed-games.mjs a partir de data/fixtures.json — NÃO editar à mão.
 -- Datas convertidas de BRT (UTC-3) para UTC. locks_at = kickoff.
-insert into public.games (id, home, away, kickoff, locks_at, round, grp) values
+insert into public.games (id, home, away, kickoff, locks_at, round, grp, phase) values
 ${rows.join(',\n')}
 on conflict (id) do update set
   home    = excluded.home,
@@ -56,7 +60,8 @@ on conflict (id) do update set
   kickoff = excluded.kickoff,
   locks_at = excluded.locks_at,
   round   = excluded.round,
-  grp     = excluded.grp;
+  grp     = excluded.grp,
+  phase   = excluded.phase;
 `;
 
 process.stdout.write(sql);

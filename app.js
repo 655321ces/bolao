@@ -28,14 +28,14 @@ const el = (tag, props = {}, ...kids) => {
 async function loadResultsFromSupabase() {
   const cfg = window.SUPABASE_CONFIG;
   if (!cfg || !cfg.url || !cfg.anonKey) throw new Error('sem SUPABASE_CONFIG');
-  const url = `${cfg.url.replace(/\/+$/, '')}/rest/v1/results?select=game_id,home,away,status`;
+  const url = `${cfg.url.replace(/\/+$/, '')}/rest/v1/results?select=game_id,home,away,status,advances`;
   const res = await fetch(url, { headers: { apikey: cfg.anonKey, Authorization: `Bearer ${cfg.anonKey}` }, cache: 'no-store' });
   if (!res.ok) throw new Error(`Supabase results ${res.status}`);
   const rows = await res.json();
   const results = {}, liveStatus = {};
   for (const r of rows) {
     const gid = String(r.game_id);
-    results[gid] = [r.home, r.away];
+    results[gid] = r.advances ? [r.home, r.away, r.advances] : [r.home, r.away];
     if (r.status && r.status !== 'FINISHED') liveStatus[gid] = r.status;
   }
   return { results, liveStatus };
@@ -73,6 +73,21 @@ async function loadData() {
 function matchLabel(gameId) {
   const f = DATA.fixtures[gameId];
   return `${f.home} x ${f.away}`;
+}
+
+/* Rótulo do estágio do jogo: fase do mata-mata ou "Grupo X · Rodada Y".
+   isKnockout/phaseName vêm do engine.js. */
+function stageMeta(f) {
+  return isKnockout(f) ? phaseName(f.phase) : `Grupo ${f.group} · Rodada ${f.round}`;
+}
+
+/* Resultado "HxA", com "(passa: <time> nos pênaltis)" quando decidido nos pênaltis. */
+function resultText(f, result) {
+  const base = `${result[0]}x${result[1]}`;
+  const side = advancerOf(result);
+  if (!side) return base;
+  const team = side === 'home' ? f.home : f.away;
+  return `${base} (passa: ${team} nos pênaltis)`;
 }
 
 /** Bandeira (flagcdn) do time; usa o mapa FLAG do engine. null se desconhecido. */
@@ -337,12 +352,12 @@ function viewGame(root) {
   const isLive = !!(DATA.liveStatus && DATA.liveStatus[selectedGame]);
   root.append(el('div', { class: 'card' },
     el('h3', {}, flaggedMatch(f.home, f.away)),
-    el('div', { class: 'meta' }, `Grupo ${f.group} · Rodada ${f.round} · ${f.date}`),
+    el('div', { class: 'meta' }, `${stageMeta(f)} · ${f.date}`),
     result
       ? el('div', {},
           isLive ? el('span', { class: 'pill live' }, 'AO VIVO') : null,
           isLive ? ' Parcial: ' : 'Resultado: ',
-          el('strong', { class: 'pts-strong' }, `${result[0]}x${result[1]}`))
+          el('strong', { class: 'pts-strong' }, resultText(f, result)))
       : el('span', { class: 'pill pending' }, 'aguardando resultado')
   ));
 
@@ -382,41 +397,48 @@ function viewGame(root) {
 }
 
 /* ---------------- View: por rodada ---------------- */
+/* Chave de estágio: rodada de grupo ("1".."3") ou código de fase ("R32"...). */
+const STAGE_SEQ = ['1', '2', '3', 'R32', 'R16', 'QF', 'SF', '3P', 'F'];
+const stageKey = f => isKnockout(f) ? f.phase : String(f.round);
+const stageHead = key => /^\d+$/.test(key) ? 'R' + key : key;   // grupos → R1..R3; fases → código
+
 function viewRound(root) {
-  const rounds = [...new Set(Object.values(DATA.fixtures).map(f => f.round))].sort((a, b) => a - b);
+  // estágios presentes nos fixtures, na ordem do torneio
+  const present = new Set(Object.values(DATA.fixtures).map(stageKey));
+  const stages = STAGE_SEQ.filter(k => present.has(k));
   const participants = [...STANDINGS.participants];
 
-  // matriz nome -> round -> pontos
-  const byRound = {};
-  participants.forEach(n => { byRound[n] = {}; rounds.forEach(r => byRound[n][r] = 0); });
+  // matriz nome -> estágio -> pontos
+  const byStage = {};
+  participants.forEach(n => { byStage[n] = {}; stages.forEach(s => byStage[n][s] = 0); });
   Object.keys(STANDINGS.perGame).forEach(gid => {
-    const r = DATA.fixtures[gid].round;
+    const s = stageKey(DATA.fixtures[gid]);
     const game = STANDINGS.perGame[gid];
     Object.keys(game).forEach(name => {
-      if (!game[name].pending) byRound[name][r] += game[name].points;
+      if (!game[name].pending) byStage[name][s] += game[name].points;
     });
   });
 
   const ranked = participants
-    .map(n => ({ name: n, total: STANDINGS.ranking.find(x => x.name === n).total, rounds: byRound[n] }))
+    .map(n => ({ name: n, total: STANDINGS.ranking.find(x => x.name === n).total, stages: byStage[n] }))
     .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name, 'pt'));
 
   const table = el('table');
   const headCells = [el('th', {}, 'Participante')];
-  rounds.forEach(r => headCells.push(el('th', { class: 'num' }, `R${r}`)));
+  stages.forEach(s => headCells.push(el('th', { class: 'num', title: /^\d+$/.test(s) ? `Rodada ${s} (grupos)` : phaseName(s) }, stageHead(s))));
   headCells.push(el('th', { class: 'num' }, 'Total'));
   table.append(el('thead', {}, el('tr', {}, ...headCells)));
 
   const tbody = el('tbody');
   ranked.forEach(p => {
     const cells = [el('td', { class: 'clickable', onclick: () => goParticipant(p.name) }, p.name)];
-    rounds.forEach(r => cells.push(el('td', { class: 'num' + (p.rounds[r] ? '' : ' muted') }, String(p.rounds[r]))));
+    stages.forEach(s => cells.push(el('td', { class: 'num' + (p.stages[s] ? '' : ' muted') }, String(p.stages[s]))));
     cells.push(el('td', { class: 'num pts-strong' }, String(p.total)));
     tbody.append(el('tr', {}, ...cells));
   });
   table.append(tbody);
   root.append(table);
-  root.append(el('p', { class: 'small muted mt' }, 'Pontos somados por rodada (1ª/2ª/3ª fase de grupos). Apenas jogos já encerrados contam.'));
+  root.append(el('p', { class: 'small muted mt' }, 'Pontos somados por estágio (rodadas de grupos R1–R3 e fases do mata-mata). Apenas jogos já encerrados contam.'));
 }
 
 /* ---------------- Router ---------------- */

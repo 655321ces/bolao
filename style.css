@@ -96,6 +96,7 @@ tr.clickable:hover td { background: var(--surface-2); }
 .pill.exact { background: rgba(255,211,77,.14); border-color: var(--gold); color: var(--gold); }
 .pill.tend { background: rgba(46,204,113,.12); border-color: var(--accent-dim); color: var(--accent); }
 .pill.gv { background: rgba(120,170,255,.12); border-color: #4a6bbf; color: #8fb0ff; }
+.pill.classif { background: rgba(186,120,255,.14); border-color: #7d4ab0; color: #c79bff; }
 .pill.pending { background: var(--surface-2); }
 .pill.zero { opacity: .6; }
 /* Ao vivo (placar parcial / ranking provisório) */
@@ -151,5 +152,6 @@ button.btn {
   padding: 10px 16px; font-size: .9rem; font-weight: 600; cursor: pointer;
 }
 button.btn.secondary { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
+button.btn.secondary.active { border-color: var(--accent); color: var(--accent); background: rgba(46,204,113,.12); }
 textarea.code { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; min-height: 220px; white-space: pre; }
 .spacer { height: 10px; }

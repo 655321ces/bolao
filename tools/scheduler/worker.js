@@ -27,6 +27,9 @@ const ACTIVE_UTC_HOURS = [17, 23, 0, 7];   // gate barato: só consulta de 17:00
 // rotula jogo em andamento como 'LIVE' (não IN_PLAY/PAUSED granular). Filtramos
 // no código (não no request) p/ não depender do que o filtro da API aceita.
 const KEEP_STATUSES = new Set(['LIVE', 'IN_PLAY', 'PAUSED', 'FINISHED']);
+const BRT_OFFSET_MIN = 180;   // BRT = UTC-3 (sem horário de verão)
+// stage da football-data → código de fase do bolão (presença de phase = mata-mata)
+const STAGE_PHASE = { LAST_32: 'R32', LAST_16: 'R16', QUARTER_FINALS: 'QF', SEMI_FINALS: 'SF', THIRD_PLACE: '3P', FINAL: 'F' };
 
 function inActiveHours(d) {
   const h = d.getUTCHours();
@@ -47,6 +50,70 @@ function resolveTeam(apiTeam, aliases, fixtureByNorm) {
     if (fixtureByNorm[n]) return fixtureByNorm[n]; // casa direto com o nome do fixture
   }
   return null;
+}
+
+// serializa fixtures preservando o formato compacto (1 jogo por linha) do arquivo
+// original — evita reescrever as 72 linhas existentes a cada commit de mata-mata.
+function formatFixtures(obj) {
+  const ids = Object.keys(obj).sort((a, b) => +a - +b);
+  const lines = ids.map((id) => {
+    const inner = Object.entries(obj[id]).map(([k, v]) => `${JSON.stringify(k)}: ${JSON.stringify(v)}`).join(', ');
+    return `  ${JSON.stringify(id)}: { ${inner} }`;
+  });
+  return '{\n' + lines.join(',\n') + '\n}\n';
+}
+
+// instante UTC (ISO) → string BRT "dd/mm HHh[MM]" (mesmo formato dos fixtures de grupo)
+function toBrtDate(iso) {
+  const d = new Date(new Date(iso).getTime() - BRT_OFFSET_MIN * 60000);
+  const dd = String(d.getUTCDate()).padStart(2, '0');
+  const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const hh = String(d.getUTCHours()).padStart(2, '0');
+  const min = d.getUTCMinutes();
+  return min ? `${dd}/${mm} ${hh}h${String(min).padStart(2, '0')}` : `${dd}/${mm} ${hh}h`;
+}
+
+// ---------- seleção de fixtures de mata-mata (pura; testável) ----------
+// Varre os `matches`, fica só com os de mata-mata (STAGE_PHASE) e CONFRONTOS JÁ
+// RESOLVIDOS (os dois times casam com algum fixture; placeholder → resolveTeam null).
+// Idempotente por conjunto de times (não renumera); atualiza só se a data mudou.
+// Aceita a ordem mandante×visitante da football-data (home = m.homeTeam).
+// Retorna { added:[{gid,home,away,date,phase,utcDate}], updated:[...] } sem mutar fixtures.
+function selectKnockoutFixtures(matches, fixtures, aliases, fixtureByNorm) {
+  const bySet = {};   // "a|b" -> { gid, date } dos fixtures de mata-mata existentes
+  let maxGid = 0;
+  for (const gid of Object.keys(fixtures)) {
+    maxGid = Math.max(maxGid, +gid);
+    const f = fixtures[gid];
+    if (f && f.phase) bySet[[norm(f.home), norm(f.away)].sort().join('|')] = { gid: +gid, date: f.date };
+  }
+
+  const ko = (matches || [])
+    .filter((m) => m && STAGE_PHASE[m.stage])
+    .slice()
+    .sort((a, b) => String(a.utcDate || '').localeCompare(String(b.utcDate || '')) || ((a.id || 0) - (b.id || 0)));
+
+  const added = [];
+  const updated = [];
+  let nextGid = maxGid + 1;
+  for (const m of ko) {
+    const hn = resolveTeam(m.homeTeam || {}, aliases, fixtureByNorm);
+    const an = resolveTeam(m.awayTeam || {}, aliases, fixtureByNorm);
+    if (!hn || !an) continue;   // confronto ainda não definido (placeholder não resolve)
+    const key = [norm(hn), norm(an)].sort().join('|');
+    const date = toBrtDate(m.utcDate);
+    const phase = STAGE_PHASE[m.stage];
+    const existing = bySet[key];
+    if (!existing) {
+      const gid = nextGid++;
+      added.push({ gid, home: hn, away: an, date, phase, utcDate: m.utcDate });
+      bySet[key] = { gid, date };
+    } else if (existing.date !== date) {
+      updated.push({ gid: existing.gid, home: hn, away: an, date, phase, utcDate: m.utcDate });
+      bySet[key].date = date;
+    }
+  }
+  return { added, updated };
 }
 
 // ---------- leitura/escrita do repo via API do GitHub (dados frescos) ----------
@@ -112,15 +179,32 @@ async function supaUpsert(rows, env) {
   if (!r.ok) throw new Error(`upsert -> ${r.status}: ${await r.text()}`);
 }
 
+// upsert na tabela `games` (mesma chave/serviço; usado p/ semear os jogos de mata-mata)
+async function supaUpsertGames(rows, env) {
+  const base = (env.SUPABASE_URL || '').replace(/\/+$/, '');
+  const r = await fetch(`${base}/rest/v1/games`, {
+    method: 'POST',
+    headers: {
+      apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+      'Content-Type': 'application/json',
+      Prefer: 'resolution=merge-duplicates', // upsert pela PK (id)
+    },
+    body: JSON.stringify(rows),
+  });
+  if (!r.ok) throw new Error(`upsert games -> ${r.status}: ${await r.text()}`);
+}
+
 async function tick(env) {
   const now = new Date();
   if (!inActiveHours(now)) return { skipped: 'fora da faixa' };
 
-  const [fixtures, aliases, resultsFile] = await Promise.all([
-    ghContentsJSON('data/fixtures.json', env),
+  const [fixturesFile, aliases, resultsFile] = await Promise.all([
+    ghGetFile('data/fixtures.json', env),   // { json, sha } — sha p/ commitar novos jogos de mata-mata
     ghContentsJSON('tools/results/teams.aliases.json', env),
-    ghGetFile('data/results.json', env),   // { json, sha } — para o espelho event-driven
+    ghGetFile('data/results.json', env),    // { json, sha } — para o espelho event-driven
   ]);
+  const fixtures = fixturesFile.json;
 
   // índices do fixture (mesma construção do fetch.mjs)
   const fixtureByNorm = {};
@@ -148,7 +232,8 @@ async function tick(env) {
   const unresolved = [];
   for (const m of matches) {
     if (!KEEP_STATUSES.has(m.status)) continue;  // pula TIMED/SCHEDULED/adiados/cancelados
-    const ft = m.score && m.score.fullTime;      // durante o jogo, fullTime carrega o placar corrente
+    const sc = m.score || {};
+    const ft = sc.fullTime;                      // durante o jogo, fullTime carrega o placar corrente
     if (!ft || ft.home == null || ft.away == null) continue;
     const hn = resolveTeam(m.homeTeam, aliases, fixtureByNorm);
     const an = resolveTeam(m.awayTeam, aliases, fixtureByNorm);
@@ -157,17 +242,30 @@ async function tick(env) {
     if (!gid) { unresolved.push(`sem fixture: ${hn} x ${an}`); continue; }
 
     const f = fixtures[gid];
+    // placar base: em pênaltis (mata-mata), usa o placar nivelado de fim de prorrogação
+    // se a API o expuser separado; senão fullTime já é o placar nivelado.
+    const pen = sc.duration === 'PENALTY_SHOOTOUT' || (sc.penalties && sc.penalties.home != null);
+    let base = [ft.home, ft.away];
+    if (pen && sc.extraTime && sc.extraTime.home != null) base = [sc.extraTime.home, sc.extraTime.away];
     // reorienta para a ordem mandante×visitante do fixture
-    const score = norm(f.home) === norm(hn) ? [ft.home, ft.away] : [ft.away, ft.home];
+    const apiHomeIsFixtureHome = norm(f.home) === norm(hn);
+    const score = apiHomeIsFixtureHome ? [base[0], base[1]] : [base[1], base[0]];
+    // quem avança nos pênaltis: só mata-mata (f.phase), jogo finalizado e empatado
+    let advances = null;
+    if (f.phase && m.status === 'FINISHED' && pen && score[0] === score[1]) {
+      const winnerSide = sc.winner === 'HOME_TEAM' ? 'home' : sc.winner === 'AWAY_TEAM' ? 'away' : null;
+      if (winnerSide) advances = apiHomeIsFixtureHome ? winnerSide : (winnerSide === 'home' ? 'away' : 'home');
+    }
     rows.push({
       game_id: +gid,
       home: score[0],
       away: score[1],
       status: m.status,
       minute: m.minute == null ? null : m.minute,
+      advances,
       updated_at: now2,
     });
-    if (m.status === 'FINISHED') finished[gid] = score;
+    if (m.status === 'FINISHED') finished[gid] = advances ? [score[0], score[1], advances] : [score[0], score[1]];
   }
 
   // caminho quente: Supabase (LIVE + FINISHED)
@@ -181,7 +279,7 @@ async function tick(env) {
     const changed = [];
     for (const gid of Object.keys(finished)) {
       const s = finished[gid], prev = merged[gid];
-      if (!prev || prev[0] !== s[0] || prev[1] !== s[1]) { merged[gid] = s; changed.push(+gid); }
+      if (!prev || prev[0] !== s[0] || prev[1] !== s[1] || (prev[2] || null) !== (s[2] || null)) { merged[gid] = s; changed.push(+gid); }
     }
     if (changed.length) {
       const sorted = {};
@@ -195,8 +293,32 @@ async function tick(env) {
     committed = 'erro: ' + e.message;   // não derruba o caminho quente (Supabase já foi)
   }
 
-  return { upserted, games: rows.map((r) => r.game_id), unresolved, committed };
+  // população event-driven dos fixtures de mata-mata: confrontos já resolvidos
+  // entram em fixtures.json + tabela games. Isolado em try/catch (não derruba o resto).
+  let fixturesOut = false;
+  try {
+    const { added, updated } = selectKnockoutFixtures(matches, fixtures, aliases, fixtureByNorm);
+    const changes = [...added, ...updated];
+    if (changes.length) {
+      const merged = { ...fixtures };
+      for (const c of changes) merged[c.gid] = { home: c.home, away: c.away, date: c.date, phase: c.phase };
+      const text = formatFixtures(merged);
+      const gids = changes.map((c) => c.gid).sort((a, b) => a - b);
+      await ghPutFile('data/fixtures.json', text, fixturesFile.sha, `Fixtures: jogo(s) ${gids.join(',')} (mata-mata, Cloudflare Worker)`, env);
+      // semeia em games (kickoff/locks_at = utcDate; round/grp nulos no mata-mata)
+      const gameRows = changes.map((c) => ({ id: c.gid, home: c.home, away: c.away, kickoff: c.utcDate, locks_at: c.utcDate, round: null, grp: null, phase: c.phase }));
+      await supaUpsertGames(gameRows, env);
+      fixturesOut = { added: added.map((c) => c.gid), updated: updated.map((c) => c.gid) };
+    }
+  } catch (e) {
+    fixturesOut = 'erro: ' + e.message;
+  }
+
+  return { upserted, games: rows.map((r) => r.game_id), unresolved, committed, fixtures: fixturesOut };
 }
+
+// exports nomeados p/ teste sintético / preview em Node (não afetam o Worker em produção)
+export { toBrtDate, formatFixtures, selectKnockoutFixtures, resolveTeam, norm, STAGE_PHASE };
 
 export default {
   // disparado pelo Cron Trigger (* * * * *)

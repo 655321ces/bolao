@@ -107,9 +107,9 @@ async function loadGames() {
 async function loadMyBets() {
   MYBETS = {};
   if (!USER) return;
-  const { data, error } = await sb.from('bets').select('game_id, home, away').eq('user_id', USER.id);
+  const { data, error } = await sb.from('bets').select('game_id, home, away, advances').eq('user_id', USER.id);
   if (error) throw error;
-  for (const b of data || []) MYBETS[b.game_id] = { home: b.home, away: b.away };
+  for (const b of data || []) MYBETS[b.game_id] = { home: b.home, away: b.away, advances: b.advances || null };
 }
 
 // histórico estático (mesma fonte do ranking público): bets.json + aliases.json.
@@ -127,10 +127,11 @@ async function loadStatic() {
 }
 
 // meu palpite para um jogo: Supabase tem prioridade; senão cai no histórico
-// (casando MYNAME direto ou via alias de nome-de-tela).
+// (casando MYNAME direto ou via alias de nome-de-tela). Em empate de mata-mata,
+// carrega o 3º elemento (lado que passa).
 function myBetFor(g) {
   const cur = MYBETS[g.id];
-  if (cur) return [cur.home, cur.away];
+  if (cur) return cur.advances ? [cur.home, cur.away, cur.advances] : [cur.home, cur.away];
   const game = HISTBETS[g.id];
   if (game) {
     if (Array.isArray(game[MYNAME])) return game[MYNAME];
@@ -172,15 +173,20 @@ async function claimIdentity(name, statusEl) {
   renderMain();
 }
 
-async function saveBet(game, homeInput, awayInput, statusEl) {
+async function saveBet(game, homeInput, awayInput, statusEl, advances = null) {
   const h = homeInput.value.trim(), a = awayInput.value.trim();
   if (h === '' || a === '') { statusEl.textContent = 'preencha os dois placares'; statusEl.className = 'small'; return; }
   const home = parseInt(h, 10), away = parseInt(a, 10);
   if (!(home >= 0 && away >= 0)) { statusEl.textContent = 'placar inválido'; statusEl.className = 'small'; return; }
 
-  statusEl.textContent = 'salvando…'; statusEl.className = 'small muted';
+  // empate de mata-mata exige escolher quem passa nos pênaltis
+  const needAdv = isKnockout(game) && home === away;
+  if (needAdv && !advances) { statusEl.textContent = 'escolha quem passa nos pênaltis'; statusEl.className = 'small'; statusEl.style.color = 'var(--bad)'; return; }
+  const adv = needAdv ? advances : null;   // só guarda em empate de mata-mata
+
+  statusEl.textContent = 'salvando…'; statusEl.className = 'small muted'; statusEl.style.color = '';
   const { error } = await sb.from('bets').upsert(
-    { user_id: USER.id, game_id: game.id, home, away },
+    { user_id: USER.id, game_id: game.id, home, away, advances: adv },
     { onConflict: 'user_id,game_id' }
   );
   if (error) {
@@ -189,7 +195,7 @@ async function saveBet(game, homeInput, awayInput, statusEl) {
     statusEl.className = 'small'; statusEl.style.color = 'var(--bad)';
     return;
   }
-  MYBETS[game.id] = { home, away };
+  MYBETS[game.id] = { home, away, advances: adv };
   statusEl.textContent = '✓ salvo'; statusEl.className = 'small'; statusEl.style.color = 'var(--accent)';
 }
 
@@ -208,6 +214,10 @@ function flagImg(name) {
 /* ---------------- render ---------------- */
 function gameLabel(g) { return `${g.home} x ${g.away}`; }
 
+/* Rótulo do estágio: fase do mata-mata, ou "Grupo X · Rodada Y" na fase de grupos.
+   isKnockout/phaseName vêm do engine.js (a linha do Supabase traz `phase`). */
+function stageLabel(g) { return isKnockout(g) ? phaseName(g.phase) : `Grupo ${g.grp} · Rodada ${g.round}`; }
+
 function labelWithFlags(g) {
   return el('span', { style: 'display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap' },
     flagImg(g.home), el('span', {}, g.home),
@@ -217,17 +227,47 @@ function labelWithFlags(g) {
 
 function openGameCard(g) {
   const mine = MYBETS[g.id];
+  const knockout = isKnockout(g);
   const card = el('div', { class: 'card' });
-  card.append(el('div', { class: 'meta' }, `Grupo ${g.grp} · Rodada ${g.round} · ${fmtBRT(g.kickoff)}`));
+  card.append(el('div', { class: 'meta' }, `${stageLabel(g)} · ${fmtBRT(g.kickoff)}`));
   const numStyle = 'width:48px;text-align:center';
   const status = el('span', { class: 'small muted' }, mine ? '✓ salvo' : '');
+
+  let advSide = mine ? (mine.advances || null) : null;   // lado escolhido p/ pênaltis (mata-mata)
+
+  // empate em mata-mata? (precisa dos dois placares preenchidos e iguais)
+  const isDraw = () => inH.value.trim() !== '' && inA.value.trim() !== '' && parseInt(inH.value, 10) === parseInt(inA.value, 10);
+
+  // botões "quem passa" (só aparecem em empate de mata-mata)
+  const advRow = el('div', { class: 'admin-row', style: 'align-items:center;gap:8px;margin-top:8px;display:none' });
+  const advBtn = (side, team) => el('button', {
+    class: 'btn secondary' + (advSide === side ? ' active' : ''),
+    onclick: () => { advSide = side; syncAdv(); autoSave(); },
+  }, flagImg(team), ' ', team);
+  let btnHome, btnAway;
+  function rebuildAdvBtns() {
+    advRow.innerHTML = '';
+    btnHome = advBtn('home', g.home);
+    btnAway = advBtn('away', g.away);
+    advRow.append(el('span', { class: 'small muted' }, 'Passa nos pênaltis:'), btnHome, btnAway);
+  }
+  function syncAdv() {
+    const draw = knockout && isDraw();
+    advRow.style.display = draw ? 'flex' : 'none';
+    if (!draw) advSide = null;
+    if (draw) rebuildAdvBtns();
+  }
+
   // auto-salva quando os dois lados estão preenchidos (guarda contra salvar pela metade)
   const autoSave = () => {
-    if (inH.value.trim() !== '' && inA.value.trim() !== '') saveBet(g, inH, inA, status);
+    if (inH.value.trim() === '' || inA.value.trim() === '') return;
+    if (knockout && isDraw() && !advSide) { status.textContent = 'escolha quem passa nos pênaltis'; status.className = 'small'; status.style.color = 'var(--bad)'; return; }
+    saveBet(g, inH, inA, status, advSide);
   };
-  const inH = el('input', { type: 'number', min: '0', max: '99', inputmode: 'numeric', class: 'score-input', style: numStyle, value: mine ? String(mine.home) : '', onchange: autoSave });
-  const inA = el('input', { type: 'number', min: '0', max: '99', inputmode: 'numeric', class: 'score-input', style: numStyle, value: mine ? String(mine.away) : '', onchange: autoSave });
-  const btn = el('button', { class: 'btn', onclick: () => saveBet(g, inH, inA, status) }, 'Salvar');
+  const onScore = () => { syncAdv(); autoSave(); };
+  const inH = el('input', { type: 'number', min: '0', max: '99', inputmode: 'numeric', class: 'score-input', style: numStyle, value: mine ? String(mine.home) : '', onchange: onScore });
+  const inA = el('input', { type: 'number', min: '0', max: '99', inputmode: 'numeric', class: 'score-input', style: numStyle, value: mine ? String(mine.away) : '', onchange: onScore });
+  const btn = el('button', { class: 'btn', onclick: autoSave }, 'Salvar');
 
   card.append(el('div', { style: 'display:flex;align-items:center;gap:6px' },
     el('span', { class: 'small', style: 'flex:1;display:flex;align-items:center;justify-content:flex-end;gap:6px;min-width:0' },
@@ -236,14 +276,16 @@ function openGameCard(g) {
     el('span', { class: 'small', style: 'flex:1;display:flex;align-items:center;justify-content:flex-start;gap:6px;min-width:0' },
       g.away, flagImg(g.away))
   ));
+  card.append(advRow);
   card.append(el('div', { class: 'admin-row', style: 'align-items:center;margin-top:8px' }, btn, status));
+  syncAdv();   // estado inicial (revela os botões se já há empate salvo)
   return card;
 }
 
 function lockedRow(g) {
   const bet = myBetFor(g);
   const result = RESULTS[g.id] || null;
-  const d = gameDetail(bet, result, CONFIG);
+  const d = gameDetail(bet, result, CONFIG, g);
   const ptsCell = d.pending
     ? el('td', { class: 'num' }, el('span', { class: 'pill pending' }, '—'))
     : el('td', { class: 'num' }, el('span', { class: 'score-chip' + (d.points ? ' pts-strong' : ' muted') }, String(d.points)));
@@ -253,9 +295,16 @@ function lockedRow(g) {
       d.pending ? null : el('div', { class: 'breakdown' }, breakdownText(d)),
       criteriaChips(d)),
     el('td', { class: 'num' }, fmtBet(bet)),
-    el('td', { class: 'num' }, result ? `${result[0]}x${result[1]}` : '—'),
+    el('td', { class: 'num' }, resultText(result)),
     ptsCell
   );
+}
+
+/* Resultado formatado "HxA", com "(passa: <lado>)" quando decidido nos pênaltis. */
+function resultText(result) {
+  if (!result) return '—';
+  const adv = advancerLabel(advancerOf(result));
+  return adv ? `${result[0]}x${result[1]} (passa: ${adv})` : `${result[0]}x${result[1]}`;
 }
 
 function renderClaim(root) {

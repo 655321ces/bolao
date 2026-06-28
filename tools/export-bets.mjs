@@ -45,7 +45,7 @@ async function main() {
   const [games, profiles, bets] = await Promise.all([
     rest('games?select=id,locks_at&limit=100000'),
     rest('profiles?select=id,display_name&limit=100000'),
-    rest('bets?select=user_id,game_id,home,away&limit=100000'),
+    rest('bets?select=user_id,game_id,home,away,advances&limit=100000'),
   ]);
 
   const now = Date.now();
@@ -58,7 +58,8 @@ async function main() {
     if (!locked.has(b.game_id)) continue;            // jogo aberto → ainda escondido
     const name = nameById[b.user_id];
     if (!name) { console.error(`AVISO: bet sem profile (user ${b.user_id}) — pulado.`); continue; }
-    (fromSupabase[b.game_id] ||= {})[name] = [b.home, b.away];
+    // empate de mata-mata guarda o lado que passa nos pênaltis no 3º elemento
+    (fromSupabase[b.game_id] ||= {})[name] = b.advances ? [b.home, b.away, b.advances] : [b.home, b.away];
   }
 
   // MERGE: parte do bets.json atual e sobrepõe SÓ os jogos vindos do Supabase.

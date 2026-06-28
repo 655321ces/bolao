@@ -4,6 +4,7 @@
   "goal_difference": 3,
   "goal_bonus_home": 1,
   "goal_bonus_away": 1,
+  "classified_bonus": 2,
   "floor": 0,
   "ceiling": 10
 }

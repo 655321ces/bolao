@@ -24,7 +24,7 @@ Tudo é feito pelo **painel web da Cloudflare** — não precisa de ferramenta l
 GitHub → Settings → Developer settings → **Fine-grained tokens** → Generate:
 - **Repository access:** Only select repositories → `bolao`.
 - **Permissions:**
-  - **Contents:** **Read and write**  (lê `fixtures.json`/`teams.aliases.json` e **commita** `results.json`)
+  - **Contents:** **Read and write**  (lê `fixtures.json`/`teams.aliases.json` e **commita** `results.json` e `fixtures.json`)
 - Gere e copie o token (`github_pat_…`).
 
 > A escrita (Contents RW) é o que permite o Worker espelhar os FINISHED no
@@ -84,5 +84,9 @@ com SELECT liberado para `anon`). Ver `supabase/SETUP.md`.
 - O upsert é **idempotente** (PK = `game_id`): re-gravar o mesmo placar é inofensivo.
 - Custo: free tier da Cloudflare (cron + ~1440 ticks/dia, a maioria saindo no gate
   de horário sem chamar nada externo).
-- **Mata-mata:** tudo deriva do `fixtures.json` — ao adicionar os jogos das
-  eliminatórias o Worker já cobre os novos horários, sem mexer no Worker.
+- **Mata-mata:** o Worker **popula os fixtures sozinho** — assim que um confronto
+  é definido (campo `stage` da football-data.org), ele commita o jogo em
+  `fixtures.json` (ids `73+`, `phase`, ordem da API) e faz upsert na tabela
+  `games` do Supabase (precisa de `SUPABASE_SERVICE_ROLE_KEY`, já configurada).
+  Resultados e "quem passou nos pênaltis" entram pelo mesmo tick. Times que não
+  resolverem aparecem em `unresolved` (complete `teams.aliases.json`).

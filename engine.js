@@ -8,48 +8,74 @@ function sign(x) {
   return (x > 0) - (x < 0);
 }
 
+/** É jogo de mata-mata? Sinal = ter o campo `phase` no fixture. */
+function isKnockout(fixture) {
+  return !!(fixture && fixture.phase);
+}
+
+/** Lado que avança nos pênaltis num array de placar [h,a,side]; só vale em empate. */
+function advancerOf(arr) {
+  return arr && arr.length > 2 ? arr[2] : null;
+}
+
 /**
  * Pontua uma aposta contra um resultado real, lendo as regras de config.
- * @param {[number,number]|null} bet  - aposta [home, away] ou null (não palpitou)
- * @param {[number,number]} result    - resultado real [home, away]
+ * @param {[number,number]|[number,number,string]|null} bet  - aposta [home, away] (e, em empate de mata-mata, o lado que passa) ou null
+ * @param {[number,number]|[number,number,string]} result    - resultado real [home, away] (e, se decidido nos pênaltis, o lado que avançou)
  * @param {object} config             - regras de config.json
+ * @param {{knockout?:boolean}} opts   - contexto do jogo (mata-mata habilita o bônus "Classificado")
  * @returns {{points:number, exact:boolean, breakdown:object}}
  */
-function score(bet, result, config) {
-  const breakdown = { exact: 0, winner: 0, goal_difference: 0, goal_bonus_home: 0, goal_bonus_away: 0 };
+function score(bet, result, config, opts = {}) {
+  const breakdown = { exact: 0, winner: 0, goal_difference: 0, goal_bonus_home: 0, goal_bonus_away: 0, classified: 0 };
   if (bet == null) {
     return { points: 0, exact: false, breakdown };
   }
   const [ph, pa] = bet;
   const [rh, ra] = result;
 
-  // 1) PLACAR EXATO é teto e NÃO acumula
+  let pts, exact;
+
+  // 1) PLACAR EXATO é teto e NÃO acumula (mas o bônus de classificado ainda soma por cima)
   if (ph === rh && pa === ra) {
     breakdown.exact = config.exact;
-    return { points: config.exact, exact: true, breakdown };
-  }
-
-  // 2) senão, soma de componentes
-  let pts = 0;
-  if (sign(ph - pa) === sign(rh - ra)) {        // acertou a DIREÇÃO
-    pts += config.winner;
-    breakdown.winner = config.winner;
-    if (ph - pa === rh - ra) {                  // saldo exige direção certa
-      pts += config.goal_difference;
-      breakdown.goal_difference = config.goal_difference;
+    pts = config.exact;
+    exact = true;
+  } else {
+    // 2) senão, soma de componentes
+    pts = 0;
+    exact = false;
+    if (sign(ph - pa) === sign(rh - ra)) {        // acertou a DIREÇÃO
+      pts += config.winner;
+      breakdown.winner = config.winner;
+      if (ph - pa === rh - ra) {                  // saldo exige direção certa
+        pts += config.goal_difference;
+        breakdown.goal_difference = config.goal_difference;
+      }
     }
-  }
-  if (ph === rh) {                              // bônus gol mandante: INDEPENDENTE
-    pts += config.goal_bonus_home;
-    breakdown.goal_bonus_home = config.goal_bonus_home;
-  }
-  if (pa === ra) {                              // bônus gol visitante: INDEPENDENTE
-    pts += config.goal_bonus_away;
-    breakdown.goal_bonus_away = config.goal_bonus_away;
+    if (ph === rh) {                              // bônus gol mandante: INDEPENDENTE
+      pts += config.goal_bonus_home;
+      breakdown.goal_bonus_home = config.goal_bonus_home;
+    }
+    if (pa === ra) {                              // bônus gol visitante: INDEPENDENTE
+      pts += config.goal_bonus_away;
+      breakdown.goal_bonus_away = config.goal_bonus_away;
+    }
+    pts = Math.max(config.floor, Math.min(config.ceiling, pts));
   }
 
-  pts = Math.max(config.floor, Math.min(config.ceiling, pts));
-  return { points: pts, exact: false, breakdown };
+  // 3) bônus CLASSIFICADO (mata-mata): só quem palpitou EMPATE acertando quem passou
+  //    nos pênaltis. Soma POR CIMA do teto (acerto duplo: exato 1x1 + classificado).
+  if (opts.knockout
+      && ph === pa                               // palpitou empate
+      && rh === ra                               // jogo terminou empatado (foi a pênaltis)
+      && advancerOf(result)                      // resultado registrou quem avançou
+      && advancerOf(bet) === advancerOf(result)) {
+    pts += config.classified_bonus;
+    breakdown.classified = config.classified_bonus;
+  }
+
+  return { points: pts, exact, breakdown };
 }
 
 /**
@@ -59,19 +85,20 @@ function score(bet, result, config) {
  * @param {[number,number]|null} bet
  * @param {[number,number]|null} result
  * @param {object|null} config
+ * @param {object|null} fixture  - jogo (para saber se é mata-mata; habilita o bônus "Classificado")
  */
-function gameDetail(bet, result, config) {
+function gameDetail(bet, result, config, fixture) {
   if (result == null || config == null) {
-    return { bet, result: null, points: 0, exact: false, tendencia: false, golsVencedor: false, breakdown: null, pending: true };
+    return { bet, result: null, points: 0, exact: false, tendencia: false, golsVencedor: false, classified: false, breakdown: null, pending: true };
   }
-  const s = score(bet, result, config);
+  const s = score(bet, result, config, { knockout: isKnockout(fixture) });
   let tendencia = false, golsVencedor = false;
   if (bet != null) {
     const [ph, pa] = bet, [rh, ra] = result;
     tendencia = sign(ph - pa) === sign(rh - ra);                                    // inclui empates; exato implica direção
     golsVencedor = rh !== ra && ((rh > ra && ph === rh) || (ra > rh && pa === ra)); // acertou os gols de quem venceu
   }
-  return { bet, result, points: s.points, exact: s.exact, tendencia, golsVencedor, breakdown: s.breakdown, pending: false };
+  return { bet, result, points: s.points, exact: s.exact, tendencia, golsVencedor, classified: !!s.breakdown.classified, breakdown: s.breakdown, pending: false };
 }
 
 /**
@@ -286,10 +313,11 @@ function computeStandings(data) {
   for (const gameId of Object.keys(bets)) {
     perGame[gameId] = {};
     const result = results[gameId] || null;
+    const fixture = fixtures[gameId] || null;
     const isLive = !!(live[gameId] && live[gameId] !== 'FINISHED');
     for (const name of Object.keys(bets[gameId])) {
       const bet = bets[gameId][name];
-      const detail = gameDetail(bet, result, config);   // mesma fonte de verdade da UI
+      const detail = gameDetail(bet, result, config, fixture);   // mesma fonte de verdade da UI
       detail.live = !detail.pending && isLive;          // jogo em andamento → pontos parciais
       if (!detail.pending) {
         const t = totals[name];
@@ -349,21 +377,38 @@ function assignPositions(ranking) {
    Strings, decisões e dados reutilizados por app.js e palpites.js. A
    renderização em DOM (chips, bandeiras) fica em cada UI; aqui só a regra. */
 
-/** Palpite formatado: "HxA" ou "—" (não palpitou). */
+/** Lado que passa, por extenso ("mandante"/"visitante"); null se não aplicável. */
+function advancerLabel(side) {
+  return side === 'home' ? 'mandante' : side === 'away' ? 'visitante' : null;
+}
+
+/** Código de fase do mata-mata → nome amigável. Devolve o próprio código se desconhecido. */
+const PHASE_NAMES = { R32: '32-avos', R16: 'Oitavas', QF: 'Quartas', SF: 'Semifinal', '3P': '3º lugar', F: 'Final' };
+function phaseName(phase) {
+  return PHASE_NAMES[phase] || phase || '';
+}
+
+/** Palpite formatado: "HxA" ou "—" (não palpitou). Em empate de mata-mata com
+ *  classificado escolhido, anexa "(passa: <lado>)". */
 function fmtBet(bet) {
-  return bet == null ? '—' : `${bet[0]}x${bet[1]}`;
+  if (bet == null) return '—';
+  const base = `${bet[0]}x${bet[1]}`;
+  const adv = advancerLabel(advancerOf(bet));
+  return adv ? `${base} (passa: ${adv})` : base;
 }
 
 /** Texto explicativo da pontuação de um detalhe (saída de gameDetail). */
 function breakdownText(d) {
   if (d.bet == null) return 'não palpitou';
-  if (d.exact) return 'placar exato';
-  const parts = [];
   const b = d.breakdown;
+  const tail = b.classified ? ` · classificado +${b.classified}` : '';
+  if (d.exact) return 'placar exato' + tail;
+  const parts = [];
   if (b.winner) parts.push(`direção +${b.winner}`);
   if (b.goal_difference) parts.push(`saldo +${b.goal_difference}`);
   if (b.goal_bonus_home) parts.push(`gol mandante +${b.goal_bonus_home}`);
   if (b.goal_bonus_away) parts.push(`gol visitante +${b.goal_bonus_away}`);
+  if (b.classified) parts.push(`classificado +${b.classified}`);
   return parts.length ? parts.join(' · ') : 'sem acerto';
 }
 
@@ -374,11 +419,12 @@ function breakdownText(d) {
  */
 function criteriaList(d) {
   if (d.pending || d.bet == null) return [];
-  if (d.exact) return [{ cls: 'exact', label: 'Exato', title: 'Cravou o placar' }];
+  const classif = d.classified ? [{ cls: 'classif', label: 'Classificado', title: 'Acertou quem passou nos pênaltis' }] : [];
+  if (d.exact) return [{ cls: 'exact', label: 'Exato', title: 'Cravou o placar' }, ...classif];
   const out = [];
   if (d.tendencia) out.push({ cls: 'tend', label: 'Tendência', title: 'Acertou a direção (vitória/empate)' });
   if (d.golsVencedor) out.push({ cls: 'gv', label: 'Gols venc.', title: 'Acertou os gols de quem venceu' });
-  return out;
+  return [...out, ...classif];
 }
 
 /** Nome do time (fixture) → código ISO 3166-1 (flagcdn). Inglaterra/Escócia: subdivisão. */
@@ -401,7 +447,7 @@ const FLAG = {
 
 /** Testes unitários do motor de pontuação (config padrão). */
 function runSelfTests() {
-  const cfg = { exact: 10, winner: 5, goal_difference: 3, goal_bonus_home: 1, goal_bonus_away: 1, floor: 0, ceiling: 10 };
+  const cfg = { exact: 10, winner: 5, goal_difference: 3, goal_bonus_home: 1, goal_bonus_away: 1, floor: 0, ceiling: 10, classified_bonus: 2 };
   const failures = [];
   // [aposta, resultado, pontos esperados, exato esperado]
   const cases = [
@@ -423,6 +469,34 @@ function runSelfTests() {
     if (s.points !== pts) failures.push(`${label}: pts esperado ${pts}, obtido ${s.points}`);
     if (s.exact !== exact) failures.push(`${label}: exato esperado ${exact}, obtido ${s.exact}`);
   }
+
+  // --- bônus CLASSIFICADO (mata-mata): só com opts.knockout=true ---
+  // [aposta, resultado, opts, pontos esperados, exato esperado, classificado esperado]
+  const ko = { knockout: true };
+  const koCases = [
+    // empate (não exato) com classificado certo: direção +5, saldo +3 (8) + bônus 2 = 10
+    [[1, 1, 'home'], [0, 0, 'home'], ko, 10, false, true],
+    // classificado ERRADO (empate não exato): só os 8 do empate, sem bônus
+    [[1, 1, 'home'], [0, 0, 'away'], ko, 8, false, false],
+    // resultado SEM pênaltis (decisivo): empate erra direção → 0, sem bônus
+    [[1, 1, 'home'], [2, 0], ko, 0, false, false],
+    // palpite DECISIVO num jogo de pênaltis: erra direção → 0, sem bônus (só draw-bettor ganha)
+    [[2, 0], [1, 1, 'home'], ko, 0, false, false],
+    // mesmo empate certo, mas FORA do mata-mata (sem opts): sem bônus
+    [[1, 1, 'home'], [0, 0, 'home'], {}, 8, false, false],
+  ];
+  for (const [bet, res, opts, pts, exact, classif] of koCases) {
+    const s = score(bet, res, cfg, opts);
+    const label = `${JSON.stringify(bet)}vs${JSON.stringify(res)}@${JSON.stringify(opts)}`;
+    if (s.points !== pts) failures.push(`${label}: pts esperado ${pts}, obtido ${s.points}`);
+    if (s.exact !== exact) failures.push(`${label}: exato esperado ${exact}, obtido ${s.exact}`);
+    if (!!s.breakdown.classified !== classif) failures.push(`${label}: classificado esperado ${classif}, obtido ${!!s.breakdown.classified}`);
+  }
+  // EXATO de empate + classificado certo = 12 (bônus empilha acima do teto de 10)
+  const exDraw = score([0, 0, 'away'], [0, 0, 'away'], cfg, ko);
+  if (exDraw.points !== 12) failures.push(`exato-empate+classificado: pts esperado 12, obtido ${exDraw.points}`);
+  if (!exDraw.exact) failures.push('exato-empate+classificado: exato esperado true');
+
   return failures;
 }
 
@@ -519,9 +593,9 @@ function runParseMergeTests() {
 // Exporta para uso em browser (global) e em Node (module) para testes
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
-    sign, score, gameDetail, gameAggregates, canonical, resolveBets, computeStandings, rankCompare, assignPositions,
+    sign, isKnockout, advancerOf, score, gameDetail, gameAggregates, canonical, resolveBets, computeStandings, rankCompare, assignPositions,
     parseLine, sortByName, sortByGameId, mergeGameBets,
-    fmtBet, breakdownText, criteriaList, FLAG,
+    fmtBet, advancerLabel, phaseName, PHASE_NAMES, breakdownText, criteriaList, FLAG,
     runSelfTests, runTiebreakTests, runParseMergeTests
   };
 }
