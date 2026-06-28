@@ -1,11 +1,12 @@
 name: Exportar palpites (Supabase → bets.json)
 
-# DESLIGADO até o go-live: por enquanto só roda manualmente (workflow_dispatch),
-# e em modo dry-run por padrão. No go-live, descomente o bloco `schedule` abaixo
-# (ex.: a cada 15 min durante os jogos) e rode uma vez com dry_run=false.
+# LIGADO no go-live (28/06/2026): roda a cada 15 min (schedule) escrevendo de
+# verdade, e ainda dá pra acionar manualmente (workflow_dispatch, dry-run por
+# padrão). O cron só leva os palpites JÁ TRAVADOS do Supabase pro bets.json — o
+# frescor do placar ao vivo vem do polling direto da tabela results (ver app.js).
 on:
-  # schedule:
-  #   - cron: '*/15 * * * *'
+  schedule:
+    - cron: '*/15 * * * *'
   workflow_dispatch:
     inputs:
       dry_run:
