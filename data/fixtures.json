@@ -70,5 +70,9 @@
   "69": { "home": "Portugal", "away": "Colômbia", "date": "27/06 20h30", "group": "K", "round": 3 },
   "70": { "home": "RD Congo", "away": "Uzbequistão", "date": "27/06 20h30", "group": "K", "round": 3 },
   "71": { "home": "Argélia", "away": "Áustria", "date": "27/06 23h", "group": "J", "round": 3 },
-  "72": { "home": "Argentina", "away": "Jordânia", "date": "27/06 23h", "group": "J", "round": 3 }
+  "72": { "home": "Argentina", "away": "Jordânia", "date": "27/06 23h", "group": "J", "round": 3 },
+  "73": { "home": "África do Sul", "away": "Canadá", "date": "28/06 16h", "phase": "R32" },
+  "74": { "home": "Brasil", "away": "Japão", "date": "29/06 14h", "phase": "R32" },
+  "75": { "home": "Holanda", "away": "Marrocos", "date": "29/06 22h", "phase": "R32" },
+  "76": { "home": "EUA", "away": "Bósnia", "date": "01/07 21h", "phase": "R32" }
 }
