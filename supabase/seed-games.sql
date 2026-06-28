@@ -76,7 +76,19 @@ insert into public.games (id, home, away, kickoff, locks_at, round, grp, phase) 
   (73, 'África do Sul', 'Canadá', '2026-06-28T19:00:00Z', '2026-06-28T19:00:00Z', NULL, NULL, 'R32'),
   (74, 'Brasil', 'Japão', '2026-06-29T17:00:00Z', '2026-06-29T17:00:00Z', NULL, NULL, 'R32'),
   (75, 'Holanda', 'Marrocos', '2026-06-30T01:00:00Z', '2026-06-30T01:00:00Z', NULL, NULL, 'R32'),
-  (76, 'EUA', 'Bósnia', '2026-07-02T00:00:00Z', '2026-07-02T00:00:00Z', NULL, NULL, 'R32')
+  (76, 'EUA', 'Bósnia', '2026-07-02T00:00:00Z', '2026-07-02T00:00:00Z', NULL, NULL, 'R32'),
+  (77, 'Alemanha', 'Paraguai', '2026-06-29T20:30:00Z', '2026-06-29T20:30:00Z', NULL, NULL, 'R32'),
+  (78, 'Costa do Marfim', 'Noruega', '2026-06-30T17:00:00Z', '2026-06-30T17:00:00Z', NULL, NULL, 'R32'),
+  (79, 'França', 'Suécia', '2026-06-30T21:00:00Z', '2026-06-30T21:00:00Z', NULL, NULL, 'R32'),
+  (80, 'México', 'Equador', '2026-07-01T01:00:00Z', '2026-07-01T01:00:00Z', NULL, NULL, 'R32'),
+  (81, 'Inglaterra', 'RD Congo', '2026-07-01T16:00:00Z', '2026-07-01T16:00:00Z', NULL, NULL, 'R32'),
+  (82, 'Bélgica', 'Senegal', '2026-07-01T20:00:00Z', '2026-07-01T20:00:00Z', NULL, NULL, 'R32'),
+  (83, 'Espanha', 'Áustria', '2026-07-02T19:00:00Z', '2026-07-02T19:00:00Z', NULL, NULL, 'R32'),
+  (84, 'Portugal', 'Croácia', '2026-07-02T23:00:00Z', '2026-07-02T23:00:00Z', NULL, NULL, 'R32'),
+  (85, 'Suíça', 'Argélia', '2026-07-03T03:00:00Z', '2026-07-03T03:00:00Z', NULL, NULL, 'R32'),
+  (86, 'Austrália', 'Egito', '2026-07-03T18:00:00Z', '2026-07-03T18:00:00Z', NULL, NULL, 'R32'),
+  (87, 'Argentina', 'Cabo Verde', '2026-07-03T22:00:00Z', '2026-07-03T22:00:00Z', NULL, NULL, 'R32'),
+  (88, 'Colômbia', 'Gana', '2026-07-04T01:30:00Z', '2026-07-04T01:30:00Z', NULL, NULL, 'R32')
 on conflict (id) do update set
   home    = excluded.home,
   away    = excluded.away,

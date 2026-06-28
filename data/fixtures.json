@@ -74,5 +74,17 @@
   "73": { "home": "África do Sul", "away": "Canadá", "date": "28/06 16h", "phase": "R32" },
   "74": { "home": "Brasil", "away": "Japão", "date": "29/06 14h", "phase": "R32" },
   "75": { "home": "Holanda", "away": "Marrocos", "date": "29/06 22h", "phase": "R32" },
-  "76": { "home": "EUA", "away": "Bósnia", "date": "01/07 21h", "phase": "R32" }
+  "76": { "home": "EUA", "away": "Bósnia", "date": "01/07 21h", "phase": "R32" },
+  "77": { "home": "Alemanha", "away": "Paraguai", "date": "29/06 17h30", "phase": "R32" },
+  "78": { "home": "Costa do Marfim", "away": "Noruega", "date": "30/06 14h", "phase": "R32" },
+  "79": { "home": "França", "away": "Suécia", "date": "30/06 18h", "phase": "R32" },
+  "80": { "home": "México", "away": "Equador", "date": "30/06 22h", "phase": "R32" },
+  "81": { "home": "Inglaterra", "away": "RD Congo", "date": "01/07 13h", "phase": "R32" },
+  "82": { "home": "Bélgica", "away": "Senegal", "date": "01/07 17h", "phase": "R32" },
+  "83": { "home": "Espanha", "away": "Áustria", "date": "02/07 16h", "phase": "R32" },
+  "84": { "home": "Portugal", "away": "Croácia", "date": "02/07 20h", "phase": "R32" },
+  "85": { "home": "Suíça", "away": "Argélia", "date": "03/07 0h", "phase": "R32" },
+  "86": { "home": "Austrália", "away": "Egito", "date": "03/07 15h", "phase": "R32" },
+  "87": { "home": "Argentina", "away": "Cabo Verde", "date": "03/07 19h", "phase": "R32" },
+  "88": { "home": "Colômbia", "away": "Gana", "date": "03/07 22h30", "phase": "R32" }
 }
