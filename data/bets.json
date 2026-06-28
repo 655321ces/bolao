@@ -4247,8 +4247,8 @@
       2
     ],
     "Igor Bammesberger": [
-      0,
-      0
+      3,
+      1
     ],
     "Joao Ajaj": [
       2,
@@ -4309,8 +4309,8 @@
       0
     ],
     "Igor Bammesberger": [
-      0,
-      0
+      2,
+      1
     ],
     "Joao Ajaj": [
       1,
@@ -4354,7 +4354,10 @@
       0,
       0
     ],
-    "David": null,
+    "David": [
+      0,
+      0
+    ],
     "Drinho": [
       1,
       2
@@ -4367,7 +4370,10 @@
       0,
       2
     ],
-    "Igor Bammesberger": null,
+    "Igor Bammesberger":  [
+      2,
+      1
+    ],
     "Joao Ajaj": [
       2,
       1
@@ -4426,7 +4432,10 @@
       4,
       0
     ],
-    "Igor Bammesberger": null,
+    "Igor Bammesberger": [
+      3,
+      0
+    ],
     "Joao Ajaj": [
       2,
       0
