@@ -36,6 +36,20 @@ async function rest(path) {
   return res.json();
 }
 
+// O PostgREST limita as linhas por requisição (max-rows, ~1000 no Supabase) e o
+// `limit=N` grande NÃO fura esse teto — passar de 1000 linhas truncava silenciosamente
+// (encolhia o bets.json no merge). Pagina por offset até a página vir incompleta.
+async function restAll(path, pageSize = 1000) {
+  const sep = path.includes('?') ? '&' : '?';
+  const out = [];
+  for (let offset = 0; ; offset += pageSize) {
+    const page = await rest(`${path}${sep}limit=${pageSize}&offset=${offset}`);
+    out.push(...page);
+    if (page.length < pageSize) break;
+  }
+  return out;
+}
+
 const sortByGameId = (o) => Object.keys(o).sort((a, b) => +a - +b)
   .reduce((acc, k) => { acc[k] = o[k]; return acc; }, {});
 const sortByName = (o) => Object.keys(o).sort((a, b) => a.localeCompare(b, 'pt'))
@@ -43,9 +57,9 @@ const sortByName = (o) => Object.keys(o).sort((a, b) => a.localeCompare(b, 'pt')
 
 async function main() {
   const [games, profiles, bets] = await Promise.all([
-    rest('games?select=id,locks_at&limit=100000'),
-    rest('profiles?select=id,display_name&limit=100000'),
-    rest('bets?select=user_id,game_id,home,away,advances&limit=100000'),
+    restAll('games?select=id,locks_at'),
+    restAll('profiles?select=id,display_name'),
+    restAll('bets?select=user_id,game_id,home,away,advances'),
   ]);
 
   const now = Date.now();
