@@ -233,3 +233,18 @@ begin
   update public.profiles set display_name = p_name where id = auth.uid();
 end;
 $$;
+
+-- ---------- public_bets: palpites de jogos TRAVADOS, leitura pública (anon) ----------
+-- O ranking público (index.html, sem login) lê os palpites daqui AO VIVO, pra pontuar
+-- um jogo no instante em que ele trava — sem esperar o export pro bets.json (que vira
+-- backup/fallback). A view roda com os direitos do dono (bypassa o RLS das tabelas-base
+-- de propósito), mas o `where now() >= locks_at` é a MESMA proteção anti-cópia do RLS:
+-- palpite de jogo aberto NUNCA aparece. Não expõe user_id nem quem não palpitou.
+create or replace view public.public_bets as
+select b.game_id, p.display_name, b.home, b.away, b.advances
+from public.bets b
+join public.profiles p on p.id = b.user_id
+join public.games   g on g.id = b.game_id
+where now() >= g.locks_at;
+
+grant select on public.public_bets to anon, authenticated;

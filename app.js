@@ -57,6 +57,40 @@ async function loadResults() {
   }
 }
 
+/* Palpites de jogos JÁ TRAVADOS, ao vivo do Supabase (view public_bets, SELECT
+   anon). A view só expõe jogo travado (anti-cópia, relógio do servidor). Paginado:
+   o PostgREST corta em ~1000 linhas/req e limit grande não fura o teto.
+   Devolve { gid: { nome: [h,a] | [h,a,adv] } } — mesmo formato do bets.json. */
+async function loadPublicBetsFromSupabase() {
+  const cfg = window.SUPABASE_CONFIG;
+  if (!cfg || !cfg.url || !cfg.anonKey) throw new Error('sem SUPABASE_CONFIG');
+  const base = `${cfg.url.replace(/\/+$/, '')}/rest/v1/public_bets?select=game_id,display_name,home,away,advances`;
+  const headers = { apikey: cfg.anonKey, Authorization: `Bearer ${cfg.anonKey}` };
+  const PAGE = 1000;
+  const bets = {};
+  for (let offset = 0; ; offset += PAGE) {
+    const res = await fetch(`${base}&limit=${PAGE}&offset=${offset}`, { headers, cache: 'no-store' });
+    if (!res.ok) throw new Error(`Supabase public_bets ${res.status}`);
+    const rows = await res.json();
+    for (const r of rows) {
+      const gid = String(r.game_id);
+      (bets[gid] ||= {})[r.display_name] = r.advances ? [r.home, r.away, r.advances] : [r.home, r.away];
+    }
+    if (rows.length < PAGE) break;
+  }
+  return bets;
+}
+
+/* Mescla palpites por (jogo, nome): parte do bets.json (base/fallback) e sobrepõe
+   os do Supabase (verdade ao vivo dos jogos travados). Não muta os originais.
+   Palpite travado não pode mudar/sumir, então sobrepor é seguro e idempotente. */
+function mergeBets(base, overlay) {
+  const out = {};
+  for (const gid of new Set([...Object.keys(base), ...Object.keys(overlay)]))
+    out[gid] = { ...(base[gid] || {}), ...(overlay[gid] || {}) };
+  return out;
+}
+
 async function loadData() {
   const entries = await Promise.all(DATA_FILES.map(async name => {
     const res = await fetch(`data/${name}.json`, { cache: 'no-store' });
@@ -64,6 +98,9 @@ async function loadData() {
     return [name, await res.json()];
   }));
   const data = Object.fromEntries(entries);
+  // palpites ao vivo dos jogos travados (Supabase) por cima do bets.json (base/fallback)
+  try { data.bets = mergeBets(data.bets, await loadPublicBetsFromSupabase()); }
+  catch (err) { console.warn('public_bets indisponível, usando bets.json:', err.message || err); }
   const { results, liveStatus } = await loadResults();
   data.results = results;
   data.liveStatus = liveStatus;
@@ -455,24 +492,28 @@ function render({ keepScroll = false } = {}) {
   if (!keepScroll) window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-/* Auto-refresh: re-busca só os resultados (Supabase) a cada 30s e re-renderiza
-   se algo mudou — sem pular o scroll. Mantém o ranking acompanhando os jogos
-   ao vivo sem o usuário recarregar a página. */
+/* Auto-refresh: re-busca resultados E palpites (Supabase) a cada 30s e re-renderiza
+   se algo mudou — sem pular o scroll. Re-buscar os palpites faz um jogo que acabou
+   de travar aparecer pontuado ao vivo sem o usuário recarregar a página. */
 const REFRESH_MS = 30000;
-let lastResultsSig = '';
+let lastSig = '';
 
-function resultsSig(results, liveStatus) {
-  return JSON.stringify(results) + '|' + JSON.stringify(liveStatus);
+function dataSig(results, liveStatus, bets) {
+  return JSON.stringify(results) + '|' + JSON.stringify(liveStatus) + '|' + JSON.stringify(bets);
 }
 
-async function refreshResults() {
+async function refreshLive() {
   try {
     const { results, liveStatus } = await loadResults();
-    const sig = resultsSig(results, liveStatus);
-    if (sig === lastResultsSig) return;     // nada novo: não re-renderiza
-    lastResultsSig = sig;
+    let bets = DATA.bets;   // se o public_bets cair, mantém o que já temos
+    try { bets = mergeBets(DATA.bets, await loadPublicBetsFromSupabase()); }
+    catch (err) { console.warn('public_bets indisponível no refresh:', err.message || err); }
+    const sig = dataSig(results, liveStatus, bets);
+    if (sig === lastSig) return;            // nada novo: não re-renderiza
+    lastSig = sig;
     DATA.results = results;
     DATA.liveStatus = liveStatus;
+    DATA.bets = bets;
     STANDINGS = computeStandings(DATA);
     render({ keepScroll: true });
   } catch (err) {
@@ -485,12 +526,12 @@ async function init() {
     b.addEventListener('click', () => setView(b.dataset.view)));
   try {
     DATA = await loadData();
-    lastResultsSig = resultsSig(DATA.results, DATA.liveStatus);
+    lastSig = dataSig(DATA.results, DATA.liveStatus, DATA.bets);
     STANDINGS = computeStandings(DATA);
     renderSelfTest();
     renderConflicts();
     render();
-    setInterval(refreshResults, REFRESH_MS);
+    setInterval(refreshLive, REFRESH_MS);
   } catch (err) {
     $('#app').innerHTML = '';
     $('#app').append(el('div', { class: 'banner fail' },
