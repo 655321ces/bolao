@@ -52,8 +52,10 @@ Lidas de `data/config.json` (não hardcoded) e aplicadas em `engine.js`. Para ca
   - **Saldo** de gols igual (só conta se a direção estiver certa): +3
   - **Bônus gol mandante** (`ph==rh`): +1 — independente
   - **Bônus gol visitante** (`pa==ra`): +1 — independente
-- **Bônus Classificado (mata-mata)** = +2: só quem **palpitou empate** e acertou
-  **quem passou nos pênaltis**. Soma **por cima do teto** (cravar 1x1 + acertar o
+- **Bônus Classificado (mata-mata)** = +2: acertou **quem se classifica**. Duas
+  vias: (a) **palpitou empate** e acertou **quem passou nos pênaltis**; ou (b)
+  acertou a **direção do vencedor** (vitória, cravada ou não — quem vence avança).
+  Soma **por cima do teto** (cravar a vitória = 12; cravar 1x1 + acertar o
   classificado = 12). Detalhes na seção Mata-mata.
 - `null` = não palpitou = 0 pontos, não conta como exato.
 
@@ -64,12 +66,14 @@ Lidas de `data/config.json` (não hardcoded) e aplicadas em `engine.js`. Para ca
 A partir do mata-mata não há empate: se o jogo termina igual no tempo
 normal/prorrogação, os **pênaltis** decidem quem avança. No bolão:
 
-- **Palpitar empate exige escolher quem passa.** Em `palpites.html`, ao digitar
-  um placar de empate num jogo de mata-mata, aparece o seletor **"Passa nos
-  pênaltis: mandante / visitante"**. Acertar quem passou rende o **bônus
-  Classificado (+2)** — palpitar empate **não** tira pontos; é a forma de
-  disputar esse bônus. Quem crava um placar **decisivo** já é premiado pelo
-  vencedor/placar (esse bônus não se aplica).
+- **Bônus Classificado (+2) por acertar quem se classifica**, em duas vias:
+  - **Empate:** ao digitar um placar de empate num jogo de mata-mata em
+    `palpites.html`, aparece o seletor **"Passa nos pênaltis: mandante /
+    visitante"**. Acertar quem passou rende o +2 — palpitar empate **não** tira
+    pontos; é a forma de disputar esse bônus.
+  - **Vitória:** acertar a **direção do vencedor** (cravada ou não) também rende
+    o +2, pois quem vence avança (em campo/prorrogação). Assim, **vitória cravada
+    no mata-mata = 12** (10 do exato + 2).
 - **Formato dos dados:** um **3º elemento** opcional nos arrays de placar marca o
   lado que passa (`"home"`/`"away"`), só em empate de mata-mata:
   - palpite: `bets.json` → `[1, 1, "home"]`

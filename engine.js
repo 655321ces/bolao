@@ -23,7 +23,7 @@ function advancerOf(arr) {
  * @param {[number,number]|[number,number,string]|null} bet  - aposta [home, away] (e, em empate de mata-mata, o lado que passa) ou null
  * @param {[number,number]|[number,number,string]} result    - resultado real [home, away] (e, se decidido nos pênaltis, o lado que avançou)
  * @param {object} config             - regras de config.json
- * @param {{knockout?:boolean}} opts   - contexto do jogo (mata-mata habilita o bônus "Classificado")
+ * @param {{knockout?:boolean}} opts   - contexto do jogo (mata-mata habilita o bônus "Classificado": empate acertando os pênaltis OU vitória de direção certa)
  * @returns {{points:number, exact:boolean, breakdown:object}}
  */
 function score(bet, result, config, opts = {}) {
@@ -64,15 +64,16 @@ function score(bet, result, config, opts = {}) {
     pts = Math.max(config.floor, Math.min(config.ceiling, pts));
   }
 
-  // 3) bônus CLASSIFICADO (mata-mata): só quem palpitou EMPATE acertando quem passou
-  //    nos pênaltis. Soma POR CIMA do teto (acerto duplo: exato 1x1 + classificado).
-  if (opts.knockout
-      && ph === pa                               // palpitou empate
-      && rh === ra                               // jogo terminou empatado (foi a pênaltis)
-      && advancerOf(result)                      // resultado registrou quem avançou
-      && advancerOf(bet) === advancerOf(result)) {
-    pts += config.classified_bonus;
-    breakdown.classified = config.classified_bonus;
+  // 3) bônus CLASSIFICADO (mata-mata): acertou quem se classifica. Soma POR CIMA do teto.
+  //    - Empate: palpitou empate e cravou quem passou nos pênaltis.
+  //    - Vitória: acertou a direção do vencedor (que avança em campo/prorrogação).
+  if (opts.knockout) {
+    const drawHit = ph === pa && rh === ra && advancerOf(result) && advancerOf(bet) === advancerOf(result);
+    const winHit = rh !== ra && sign(ph - pa) === sign(rh - ra);
+    if (drawHit || winHit) {
+      pts += config.classified_bonus;
+      breakdown.classified = config.classified_bonus;
+    }
   }
 
   return { points: pts, exact, breakdown };
@@ -419,7 +420,7 @@ function breakdownText(d) {
  */
 function criteriaList(d) {
   if (d.pending || d.bet == null) return [];
-  const classif = d.classified ? [{ cls: 'classif', label: 'Classificado', title: 'Acertou quem passou nos pênaltis' }] : [];
+  const classif = d.classified ? [{ cls: 'classif', label: 'Classificado', title: 'Acertou quem se classifica' }] : [];
   if (d.exact) return [{ cls: 'exact', label: 'Exato', title: 'Cravou o placar' }, ...classif];
   const out = [];
   if (d.tendencia) out.push({ cls: 'tend', label: 'Tendência', title: 'Acertou a direção (vitória/empate)' });
@@ -484,6 +485,14 @@ function runSelfTests() {
     [[2, 0], [1, 1, 'home'], ko, 0, false, false],
     // mesmo empate certo, mas FORA do mata-mata (sem opts): sem bônus
     [[1, 1, 'home'], [0, 0, 'home'], {}, 8, false, false],
+    // VITÓRIA cravada no mata-mata: exato 10 + bônus 2 = 12 (acertou quem se classifica)
+    [[2, 1], [2, 1], ko, 12, true, true],
+    // VITÓRIA não cravada com direção certa: direção +5, gol visitante +1 (6) + bônus 2 = 8
+    [[2, 1], [3, 1], ko, 8, false, true],
+    // VITÓRIA com direção ERRADA: sem bônus (e sem acerto de componentes) = 0
+    [[0, 2], [2, 1], ko, 0, false, false],
+    // VITÓRIA cravada FORA do mata-mata (sem opts): sem bônus, segue 10
+    [[2, 1], [2, 1], {}, 10, true, false],
   ];
   for (const [bet, res, opts, pts, exact, classif] of koCases) {
     const s = score(bet, res, cfg, opts);
