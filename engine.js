@@ -374,6 +374,82 @@ function assignPositions(ranking) {
   return ranking;
 }
 
+/* ---------------- Linha do tempo da "corrida" (puro, sem DOM) ----------------
+   Série temporal da disputa: pontos ACUMULADOS de cada participante a cada jogo
+   finalizado, em ordem cronológica. Derivada (não armazenada) dos mesmos dados
+   do ranking, reusando gameDetail (fonte única de pontuação). */
+
+/* Converte a data do fixture ("dd/mm HHh" ou "dd/mm HHhMM") em timestamp (ms).
+   Sem ano no fixture; assume FIXTURE_YEAR (horário local do navegador). NaN se
+   não casar (vai pro fim na ordenação). Jogos após a meia-noite (ex.: "1h")
+   ficam no dia/hora corretos, então a ordem cronológica sai certa. */
+const FIXTURE_YEAR = 2026;
+function parseFixtureDate(dateStr) {
+  const m = /^(\d{2})\/(\d{2})\s+(\d{1,2})h(\d{2})?$/.exec(dateStr || '');
+  if (!m) return NaN;
+  return new Date(FIXTURE_YEAR, +m[2] - 1, +m[1], +m[3], +m[4] || 0).getTime();
+}
+
+/**
+ * Constrói a linha do tempo da corrida: para cada jogo já com resultado (em
+ * ordem cronológica), o total ACUMULADO de pontos de cada participante.
+ * @param {object} data - { fixtures, config, aliases, results, bets }
+ * @returns {{
+ *   participants: string[],                 // todos (chaves canônicas), ordenados por nome
+ *   steps: Array<{ gameId, date, home, away, totals: {[name]:number} }>,
+ *   maxTotal: number                        // maior acumulado (escala do eixo Y)
+ * }}
+ */
+function buildRaceTimeline(data) {
+  const { fixtures, config, aliases, results, bets: rawBets } = data;
+  const { bets } = resolveBets(rawBets, aliases);
+
+  // participantes = todas as chaves canônicas que aparecem em bets
+  const participantSet = new Set();
+  for (const gid of Object.keys(bets))
+    for (const name of Object.keys(bets[gid])) participantSet.add(name);
+  const participants = [...participantSet].sort((a, b) => a.localeCompare(b, 'pt'));
+
+  // jogos com resultado (não pendentes), em ordem cronológica; id desempata
+  const finishedIds = Object.keys(bets).filter(gid => results[gid] != null && config != null);
+  finishedIds.sort((a, b) => {
+    const ta = parseFixtureDate(fixtures[a] && fixtures[a].date);
+    const tb = parseFixtureDate(fixtures[b] && fixtures[b].date);
+    const na = isNaN(ta), nb = isNaN(tb);
+    if (na && nb) return Number(a) - Number(b);
+    if (na) return 1;                 // sem data → fim
+    if (nb) return -1;
+    return ta - tb || Number(a) - Number(b);
+  });
+
+  const running = {};
+  for (const name of participants) running[name] = 0;
+
+  const steps = [];
+  let maxTotal = 0;
+  for (const gid of finishedIds) {
+    const fixture = fixtures[gid] || null;
+    const result = results[gid];
+    for (const name of Object.keys(bets[gid])) {
+      const detail = gameDetail(bets[gid][name], result, config, fixture);
+      if (!detail.pending) running[name] += detail.points;   // imutável: só soma
+    }
+    const totals = {};
+    for (const name of participants) {
+      totals[name] = running[name];
+      if (running[name] > maxTotal) maxTotal = running[name];
+    }
+    steps.push({
+      gameId: gid,
+      date: (fixture && fixture.date) || '',
+      home: fixture && fixture.home,
+      away: fixture && fixture.away,
+      totals,
+    });
+  }
+  return { participants, steps, maxTotal };
+}
+
 /* ---------------- Apresentação (puro, sem DOM) ----------------
    Strings, decisões e dados reutilizados por app.js e palpites.js. A
    renderização em DOM (chips, bandeiras) fica em cada UI; aqui só a regra. */
@@ -539,6 +615,8 @@ function runTiebreakTests() {
   // 4. Gols do vencedor desempatam (pontos+exatos+tendências iguais)
   expectOrder('gols vencedor', [mkTie('X', 20, 1, 2, 1), mkTie('Y', 20, 1, 2, 2)], ['Y', 'X']);
 
+  // (corrida testada à parte em runRaceTests)
+
   // 5. Empate residual: métricas idênticas → mesma posição
   const tie = assignPositions([mkTie('A', 11, 1, 1, 1), mkTie('B', 11, 1, 1, 1)].sort(rankCompare));
   if (!(tie[0].pos === 1 && tie[1].pos === 1)) {
@@ -602,12 +680,53 @@ function runParseMergeTests() {
   return failures;
 }
 
+/**
+ * Testes SINTÉTICOS da linha do tempo da corrida (buildRaceTimeline): ordenação
+ * cronológica por data (não por id) e acumulação correta de pontos passo a passo.
+ * Entradas fixas inventadas, independentes de bets.json/results.json.
+ */
+function runRaceTests() {
+  const failures = [];
+  const cfg = { exact: 10, winner: 5, goal_difference: 3, goal_bonus_home: 1, goal_bonus_away: 1, floor: 0, ceiling: 10, classified_bonus: 2 };
+  const data = {
+    config: cfg,
+    aliases: {},
+    fixtures: {
+      '1': { home: 'A', away: 'B', date: '12/06 16h' },
+      '2': { home: 'C', away: 'D', date: '11/06 16h' },   // mais cedo que o 1 → vem ANTES
+      '3': { home: 'E', away: 'F', date: '13/06 16h' },
+    },
+    results: { '1': [2, 1], '2': [0, 0], '3': [1, 0] },
+    bets: {
+      '1': { Ana: [2, 1], Beto: [1, 0] },   // Ana exato=10 ; Beto direção+saldo=8
+      '2': { Ana: [0, 0], Beto: [1, 1] },   // Ana exato=10 ; Beto empate(dir+saldo)=8
+      '3': { Ana: [0, 0], Beto: [1, 0] },   // Ana gols-fora=1 ; Beto exato=10
+    },
+  };
+  const tl = buildRaceTimeline(data);
+
+  const order = tl.steps.map(s => s.gameId).join(',');
+  if (order !== '2,1,3') failures.push(`ordem cronológica: esperado 2,1,3, obtido ${order}`);
+
+  const s0 = tl.steps[0].totals;                          // após jogo 2
+  if (s0.Ana !== 10 || s0.Beto !== 8) failures.push(`passo 1: esperado Ana10/Beto8, obtido Ana${s0.Ana}/Beto${s0.Beto}`);
+
+  const last = tl.steps[tl.steps.length - 1].totals;       // acumulado final
+  if (last.Ana !== 21) failures.push(`Ana total: esperado 21, obtido ${last.Ana}`);
+  if (last.Beto !== 26) failures.push(`Beto total: esperado 26, obtido ${last.Beto}`);
+
+  if (tl.maxTotal !== 26) failures.push(`maxTotal: esperado 26, obtido ${tl.maxTotal}`);
+
+  return failures;
+}
+
 // Exporta para uso em browser (global) e em Node (module) para testes
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     sign, isKnockout, advancerOf, score, gameDetail, gameAggregates, canonical, resolveBets, computeStandings, rankCompare, assignPositions,
+    parseFixtureDate, buildRaceTimeline,
     parseLine, sortByName, sortByGameId, mergeGameBets,
     fmtBet, advancerLabel, phaseName, PHASE_NAMES, breakdownText, criteriaList, FLAG,
-    runSelfTests, runTiebreakTests, runParseMergeTests
+    runSelfTests, runTiebreakTests, runParseMergeTests, runRaceTests
   };
 }

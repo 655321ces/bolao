@@ -6,6 +6,10 @@ const DATA_FILES = ['fixtures', 'config', 'aliases', 'bets'];
 let DATA = null;
 let STANDINGS = null;
 let currentView = 'ranking';
+/* Estado da animação da "Corrida" preservado entre re-renders (auto-refresh de
+   30s não reinicia a animação). raceTimer é o setInterval ativo (ou null). */
+let raceState = { step: 0, playing: false };
+let raceTimer = null;
 
 const $ = sel => document.querySelector(sel);
 const el = (tag, props = {}, ...kids) => {
@@ -145,13 +149,10 @@ function flaggedMatch(home, away) {
     flagImg(home), el('span', {}, home), el('span', { class: 'muted' }, 'x'), el('span', {}, away), flagImg(away));
 }
 
-/* Converte a data do fixture ("dd/mm HHh" ou "dd/mm HHhMM") em timestamp (ms).
-   Sem ano no fixture; assume FIXTURE_YEAR (horário de Brasília / local do navegador). */
-const FIXTURE_YEAR = 2026;
+/* Data do fixture → timestamp (ms). Delega ao parser único do engine
+   (parseFixtureDate); NaN quando não casa o formato "dd/mm HHh[MM]". */
 function fixtureStart(f) {
-  const m = /^(\d{2})\/(\d{2})\s+(\d{1,2})h(\d{2})?$/.exec((f && f.date) || '');
-  if (!m) return NaN;
-  return new Date(FIXTURE_YEAR, +m[2] - 1, +m[1], +m[3], +m[4] || 0).getTime();
+  return parseFixtureDate(f && f.date);
 }
 
 /* Último jogo já iniciado (maior horário <= agora); empates pegam o maior id.
@@ -179,14 +180,15 @@ function renderSelfTest() {
   const unit = runSelfTests();
   const tie = runTiebreakTests();
   const pm = runParseMergeTests();
+  const race = runRaceTests();
   const box = $('#selftest');
-  if (unit.length === 0 && tie.length === 0 && pm.length === 0) {
+  if (unit.length === 0 && tie.length === 0 && pm.length === 0 && race.length === 0) {
     box.innerHTML = '';
-    box.append(el('div', { class: 'banner ok' }, '✓ Self-test: motor de pontuação, cascata de desempate e parse/merge conferem (testes sintéticos).'));
+    box.append(el('div', { class: 'banner ok' }, '✓ Self-test: motor de pontuação, cascata de desempate, parse/merge e corrida conferem (testes sintéticos).'));
     return true;
   }
   const ul = el('ul');
-  [...unit, ...tie, ...pm].forEach(f => ul.append(el('li', {}, f)));
+  [...unit, ...tie, ...pm, ...race].forEach(f => ul.append(el('li', {}, f)));
   box.innerHTML = '';
   box.append(el('div', { class: 'banner fail' },
     el('strong', {}, '✗ Self-test FALHOU — o ranking pode estar incorreto:'), ul));
@@ -478,14 +480,173 @@ function viewRound(root) {
   root.append(el('p', { class: 'small muted mt' }, 'Pontos somados por estágio (rodadas de grupos R1–R3 e fases do mata-mata). Apenas jogos já encerrados contam.'));
 }
 
+/* ---------------- View: corrida (gráfico de linhas animado) ----------------
+   Evolução dos pontos ACUMULADOS de cada participante, jogo a jogo (ordem
+   cronológica). SVG puro; play/pause + slider; legenda com realce no hover.
+   A série vem de buildRaceTimeline (engine, mesma fonte de verdade do ranking). */
+const SVGNS = 'http://www.w3.org/2000/svg';
+const svgEl = (tag, attrs = {}) => {
+  const n = document.createElementNS(SVGNS, tag);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  return n;
+};
+/* Cor estável por índice (ângulo áureo) — distinta o bastante p/ ~20+ linhas. */
+const raceColor = i => `hsl(${Math.round(i * 137.508) % 360} 72% 48%)`;
+
+function viewRace(root) {
+  const tl = buildRaceTimeline(DATA);
+  const N = tl.steps.length;
+
+  root.append(el('h2', { class: 'view-title' }, '📈 Corrida — evolução dos pontos'));
+
+  if (N === 0) {
+    root.append(el('div', { class: 'banner' },
+      'A corrida começa quando o primeiro jogo for finalizado.'));
+    return;
+  }
+
+  // clamp do passo guardado (os dados podem ter crescido/encolhido)
+  if (raceState.step >= N) raceState.step = N - 1;
+  if (raceState.step < 0) raceState.step = 0;
+
+  const names = tl.participants;
+  const colorOf = {};
+  names.forEach((n, i) => { colorOf[n] = raceColor(i); });
+
+  // geometria em unidades do viewBox (escala via CSS width:100%)
+  const W = 1000, H = 520, padL = 46, padR = 26, padT = 18, padB = 40;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const xAt = i => padL + (N === 1 ? plotW / 2 : plotW * i / (N - 1));
+  const yMax = Math.max(10, tl.maxTotal);
+  const yAt = v => padT + plotH * (1 - v / yMax);
+
+  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, class: 'race-svg', role: 'img' });
+
+  // grade horizontal + rótulos do eixo Y (5 linhas)
+  for (let g = 0; g <= 5; g++) {
+    const v = Math.round(yMax * g / 5);
+    const y = yAt(v);
+    svg.appendChild(svgEl('line', { x1: padL, y1: y, x2: W - padR, y2: y, class: 'race-grid' }));
+    const t = svgEl('text', { x: padL - 8, y: y + 4, class: 'race-axis', 'text-anchor': 'end' });
+    t.textContent = String(v);
+    svg.appendChild(t);
+  }
+  // baseline (eixo X)
+  svg.appendChild(svgEl('line', { x1: padL, y1: yAt(0), x2: W - padR, y2: yAt(0), class: 'race-axis-line' }));
+
+  // cursor vertical (posição do passo atual)
+  const cursor = svgEl('line', { y1: padT, y2: yAt(0), class: 'race-cursor' });
+  svg.appendChild(cursor);
+
+  // uma polyline por participante (pontos preenchidos em redraw)
+  const lineOf = {};
+  for (const n of names) {
+    const pl = svgEl('polyline', { class: 'race-line', fill: 'none', stroke: colorOf[n], 'data-name': n });
+    lineOf[n] = pl;
+    svg.appendChild(pl);
+  }
+  // rótulo de foco (aparece ao destacar um participante)
+  const focusLabel = svgEl('text', { class: 'race-focus-label', 'text-anchor': 'start' });
+  svg.appendChild(focusLabel);
+
+  root.append(svg);
+
+  // --- controles ---
+  const playBtn = el('button', { class: 'race-play', type: 'button' });
+  const stepText = el('span', { class: 'race-step muted small' });
+  const slider = el('input', { type: 'range', min: '0', max: String(N - 1), value: String(raceState.step), class: 'race-slider' });
+  const controls = el('div', { class: 'race-controls' }, playBtn, slider, stepText);
+  root.append(controls);
+
+  // --- legenda (chips com cor + nome; hover destaca a linha) ---
+  const legend = el('div', { class: 'race-legend' });
+  for (const n of names) {
+    const chip = el('span', { class: 'race-chip', 'data-name': n },
+      el('i', { class: 'race-dot', style: `background:${colorOf[n]}` }), n);
+    chip.addEventListener('mouseenter', () => setFocus(n));
+    chip.addEventListener('mouseleave', () => setFocus(null));
+    legend.append(chip);
+  }
+  root.append(legend);
+  root.append(el('p', { class: 'small muted mt' },
+    'Pontos acumulados após cada jogo encerrado, em ordem cronológica. Passe o mouse num nome para destacá-lo. ' +
+    'O total ao fim da corrida bate com o Ranking.'));
+
+  // ---- desenho de um passo ----
+  let focusName = null;
+  function redraw() {
+    const step = raceState.step;
+    for (const n of names) {
+      let pts = '';
+      for (let i = 0; i <= step; i++) pts += `${xAt(i)},${yAt(tl.steps[i].totals[n])} `;
+      lineOf[n].setAttribute('points', pts.trim());
+    }
+    const cx = xAt(step);
+    cursor.setAttribute('x1', cx); cursor.setAttribute('x2', cx);
+    const s = tl.steps[step];
+    const match = s.home && s.away ? ` · ${s.home}×${s.away}` : '';
+    stepText.textContent = `Jogo ${s.gameId}${match}${s.date ? ' — ' + s.date : ''}  (${step + 1}/${N})`;
+    if (slider.value !== String(step)) slider.value = String(step);
+    if (focusName) positionFocusLabel();
+  }
+  function positionFocusLabel() {
+    const step = raceState.step;
+    const v = tl.steps[step].totals[focusName];
+    focusLabel.textContent = `${focusName} · ${v}`;
+    let x = xAt(step) + 8, anchor = 'start';
+    if (x > W - padR - 120) { x = xAt(step) - 8; anchor = 'end'; }   // perto da borda → joga p/ esquerda
+    focusLabel.setAttribute('x', x);
+    focusLabel.setAttribute('y', yAt(v) - 6);
+    focusLabel.setAttribute('text-anchor', anchor);
+    focusLabel.setAttribute('fill', colorOf[focusName]);
+  }
+  function setFocus(n) {
+    focusName = n;
+    svg.classList.toggle('has-focus', !!n);
+    for (const nm of names) lineOf[nm].classList.toggle('focused', nm === n);
+    legend.querySelectorAll('.race-chip').forEach(c =>
+      c.classList.toggle('on', c.dataset.name === n));
+    if (n) positionFocusLabel(); else focusLabel.textContent = '';
+  }
+
+  // ---- play/pause ----
+  function setPlaying(on) {
+    raceState.playing = on;
+    playBtn.textContent = on ? '⏸ Pausar' : '▶ Reproduzir';
+    if (raceTimer) { clearInterval(raceTimer); raceTimer = null; }
+    if (on) {
+      if (raceState.step >= N - 1) raceState.step = 0;   // recomeça se estava no fim
+      raceTimer = setInterval(() => {
+        if (raceState.step >= N - 1) { setPlaying(false); return; }
+        raceState.step++;
+        redraw();
+      }, 650);
+    }
+  }
+  playBtn.addEventListener('click', () => setPlaying(!raceState.playing));
+  slider.addEventListener('input', () => {
+    if (raceState.playing) setPlaying(false);
+    raceState.step = +slider.value;
+    redraw();
+  });
+
+  // estado inicial: respeita raceState (preservado entre re-renders)
+  playBtn.textContent = raceState.playing ? '⏸ Pausar' : '▶ Reproduzir';
+  redraw();
+  if (raceState.playing) setPlaying(true);
+}
+
 /* ---------------- Router ---------------- */
-const VIEWS = { ranking: viewRanking, participant: viewParticipant, game: viewGame, round: viewRound };
+const VIEWS = { ranking: viewRanking, participant: viewParticipant, game: viewGame, round: viewRound, race: viewRace };
 
 function setView(v) { currentView = v; render(); }
 
 function render({ keepScroll = false } = {}) {
   document.querySelectorAll('#tabs button').forEach(b =>
     b.classList.toggle('active', b.dataset.view === currentView));
+  // a view anterior pode ter deixado a animação da corrida rodando; pare o timer
+  // (viewRace recria o seu se ainda estivermos nela e raceState.playing).
+  if (raceTimer) { clearInterval(raceTimer); raceTimer = null; }
   const root = $('#app');
   root.innerHTML = '';
   VIEWS[currentView](root);

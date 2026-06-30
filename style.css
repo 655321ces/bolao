@@ -155,3 +155,44 @@ button.btn.secondary { background: var(--surface-2); color: var(--text); border:
 button.btn.secondary.active { border-color: var(--accent); color: var(--accent); background: rgba(46,204,113,.12); }
 textarea.code { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; min-height: 220px; white-space: pre; }
 .spacer { height: 10px; }
+
+/* ---------------- View: Corrida (gráfico de linhas animado) ---------------- */
+.view-title { font-size: 1.05rem; margin: 2px 0 12px; }
+
+.race-svg {
+  width: 100%; height: auto; display: block;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); overflow: visible;
+}
+.race-grid { stroke: var(--border); stroke-width: 1; opacity: .5; vector-effect: non-scaling-stroke; }
+.race-axis-line { stroke: var(--border); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.race-axis { fill: var(--muted); font-size: 15px; font-variant-numeric: tabular-nums; }
+.race-cursor { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 4 4; opacity: .55; vector-effect: non-scaling-stroke; }
+
+.race-line {
+  stroke-width: 2; opacity: .9; stroke-linejoin: round; stroke-linecap: round;
+  vector-effect: non-scaling-stroke; transition: opacity .15s;
+}
+/* destaque: ao focar um participante, esmaece os demais */
+.race-svg.has-focus .race-line { opacity: .1; }
+.race-svg.has-focus .race-line.focused { opacity: 1; stroke-width: 3.5; }
+.race-focus-label { font-size: 16px; font-weight: 700; paint-order: stroke; stroke: var(--bg); stroke-width: 3px; }
+
+.race-controls { display: flex; align-items: center; gap: 12px; margin: 12px 0 6px; flex-wrap: wrap; }
+.race-play {
+  background: var(--accent); color: #0a0d10; border: none; border-radius: 999px;
+  padding: 7px 16px; font-size: .85rem; font-weight: 600; cursor: pointer; flex: none;
+}
+.race-play:hover { filter: brightness(1.08); }
+.race-slider { flex: 1; min-width: 160px; accent-color: var(--accent); cursor: pointer; }
+.race-step { flex: none; font-variant-numeric: tabular-nums; }
+
+.race-legend { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.race-chip {
+  display: inline-flex; align-items: center; gap: 6px; cursor: default;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 999px; padding: 3px 10px; font-size: .78rem; color: var(--muted);
+  transition: .15s;
+}
+.race-chip:hover, .race-chip.on { color: var(--text); border-color: var(--muted); }
+.race-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
