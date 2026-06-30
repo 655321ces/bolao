@@ -86,5 +86,6 @@
   "85": { "home": "Suíça", "away": "Argélia", "date": "03/07 00h", "phase": "R32" },
   "86": { "home": "Austrália", "away": "Egito", "date": "03/07 15h", "phase": "R32" },
   "87": { "home": "Argentina", "away": "Cabo Verde", "date": "03/07 19h", "phase": "R32" },
-  "88": { "home": "Colômbia", "away": "Gana", "date": "03/07 22h30", "phase": "R32" }
+  "88": { "home": "Colômbia", "away": "Gana", "date": "03/07 22h30", "phase": "R32" },
+  "89": { "home": "Canadá", "away": "Marrocos", "date": "04/07 14h", "phase": "R16" }
 }
