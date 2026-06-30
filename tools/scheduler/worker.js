@@ -242,11 +242,11 @@ async function tick(env) {
     if (!gid) { unresolved.push(`sem fixture: ${hn} x ${an}`); continue; }
 
     const f = fixtures[gid];
-    // placar base: em pênaltis (mata-mata), usa o placar nivelado de fim de prorrogação
-    // se a API o expuser separado; senão fullTime já é o placar nivelado.
+    // placar base: em pênaltis (mata-mata), fullTime vem somado com a disputa;
+    // subtrai os pênaltis p/ obter o placar nivelado de fim de prorrogação (= regularTime + extraTime)
     const pen = sc.duration === 'PENALTY_SHOOTOUT' || (sc.penalties && sc.penalties.home != null);
     let base = [ft.home, ft.away];
-    if (pen && sc.extraTime && sc.extraTime.home != null) base = [sc.extraTime.home, sc.extraTime.away];
+    if (pen && sc.penalties && sc.penalties.home != null) base = [ft.home - sc.penalties.home, ft.away - sc.penalties.away];
     // reorienta para a ordem mandante×visitante do fixture
     const apiHomeIsFixtureHome = norm(f.home) === norm(hn);
     const score = apiHomeIsFixtureHome ? [base[0], base[1]] : [base[1], base[0]];
