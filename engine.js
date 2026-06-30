@@ -378,9 +378,12 @@ function assignPositions(ranking) {
    Strings, decisões e dados reutilizados por app.js e palpites.js. A
    renderização em DOM (chips, bandeiras) fica em cada UI; aqui só a regra. */
 
-/** Lado que passa, por extenso ("mandante"/"visitante"); null se não aplicável. */
-function advancerLabel(side) {
-  return side === 'home' ? 'mandante' : side === 'away' ? 'visitante' : null;
+/** Lado que passa: nome do time quando `fixture` é dado, senão "mandante"/"visitante".
+ *  Devolve null se `side` não for 'home'/'away'. */
+function advancerLabel(side, fixture) {
+  if (side !== 'home' && side !== 'away') return null;
+  if (fixture) return side === 'home' ? fixture.home : fixture.away;
+  return side === 'home' ? 'mandante' : 'visitante';
 }
 
 /** Código de fase do mata-mata → nome amigável. Devolve o próprio código se desconhecido. */
@@ -390,11 +393,11 @@ function phaseName(phase) {
 }
 
 /** Palpite formatado: "HxA" ou "—" (não palpitou). Em empate de mata-mata com
- *  classificado escolhido, anexa "(passa: <lado>)". */
-function fmtBet(bet) {
+ *  classificado escolhido, anexa "(passa: <lado>)" — nome do time se `fixture` é dado. */
+function fmtBet(bet, fixture) {
   if (bet == null) return '—';
   const base = `${bet[0]}x${bet[1]}`;
-  const adv = advancerLabel(advancerOf(bet));
+  const adv = advancerLabel(advancerOf(bet), fixture);
   return adv ? `${base} (passa: ${adv})` : base;
 }
 

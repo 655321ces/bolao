@@ -294,16 +294,16 @@ function lockedRow(g) {
       el('div', { class: 'breakdown' }, `${fmtBRT(g.kickoff)} · fechado`),
       d.pending ? null : el('div', { class: 'breakdown' }, breakdownText(d)),
       criteriaChips(d)),
-    el('td', { class: 'num' }, fmtBet(bet)),
-    el('td', { class: 'num' }, resultText(result)),
+    el('td', { class: 'num' }, fmtBet(bet, g)),
+    el('td', { class: 'num' }, resultText(result, g)),
     ptsCell
   );
 }
 
-/* Resultado formatado "HxA", com "(passa: <lado>)" quando decidido nos pênaltis. */
-function resultText(result) {
+/* Resultado formatado "HxA", com "(passa: <time>)" quando decidido nos pênaltis. */
+function resultText(result, g) {
   if (!result) return '—';
-  const adv = advancerLabel(advancerOf(result));
+  const adv = advancerLabel(advancerOf(result), g);
   return adv ? `${result[0]}x${result[1]} (passa: ${adv})` : `${result[0]}x${result[1]}`;
 }
 

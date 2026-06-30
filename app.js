@@ -201,7 +201,7 @@ function renderConflicts() {
   const ul = el('ul');
   cs.forEach(c => {
     ul.append(el('li', {}, `${matchLabel(c.gameId)} (jogo ${c.gameId}) — ${c.canonical}: `
-      + `"${c.a.name}" ${fmtBet(c.a.bet)} vs "${c.b.name}" ${fmtBet(c.b.bet)}`));
+      + `"${c.a.name}" ${fmtBet(c.a.bet, DATA.fixtures[c.gameId])} vs "${c.b.name}" ${fmtBet(c.b.bet, DATA.fixtures[c.gameId])}`));
   });
   box.append(el('div', { class: 'banner warn' },
     el('strong', {}, '⚠ Conflito de aliases (resolva nos dados):'), ul));
@@ -305,7 +305,7 @@ function viewParticipant(root) {
         flaggedMatch(DATA.fixtures[gid].home, DATA.fixtures[gid].away),
         el('div', { class: 'breakdown' }, d.pending ? 'aguardando resultado' : breakdownText(d)),
         criteriaChips(d)),
-      el('td', { class: 'num' }, fmtBet(d.bet)),
+      el('td', { class: 'num' }, fmtBet(d.bet, DATA.fixtures[gid])),
       el('td', { class: 'num' },
         d.result ? `${d.result[0]}x${d.result[1]}` : '—',
         d.live ? el('span', { class: 'pill live mini' }, 'ao vivo') : null),
@@ -425,7 +425,7 @@ function viewGame(root) {
       el('td', {}, el('div', {}, d.name),
         d.pending ? null : el('div', { class: 'breakdown' }, breakdownText(d)),
         criteriaChips(d)),
-      el('td', { class: 'num' }, fmtBet(d.bet)),
+      el('td', { class: 'num' }, fmtBet(d.bet, f)),
       ptsCell
     ));
   });
