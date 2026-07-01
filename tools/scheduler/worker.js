@@ -22,7 +22,7 @@
 const OWNER = '655321ces';
 const REPO = 'bolao';
 const COMP = 'WC';                         // competição na football-data.org
-const ACTIVE_UTC_HOURS = [17, 23, 0, 7];   // gate barato: só consulta de 17:00–07:59 UTC (faixa dos jogos)
+const ACTIVE_UTC_HOURS = [15, 23, 0, 7];   // gate barato: só consulta de 15:00–07:59 UTC (faixa dos jogos; 15 UTC = 12h BRT)
 // Status que viram placar na tabela. ATENÇÃO: o plano free da football-data
 // rotula jogo em andamento como 'LIVE' (não IN_PLAY/PAUSED granular). Filtramos
 // no código (não no request) p/ não depender do que o filtro da API aceita.
@@ -273,6 +273,7 @@ async function tick(env) {
   if (rows.length) { await supaUpsert(rows, env); upserted = rows.length; }
 
   // espelho event-driven: só commita results.json quando um FINISHED entra/muda
+  /** @type {false | number[] | string} */
   let committed = false;
   try {
     const merged = { ...resultsFile.json };
@@ -295,6 +296,7 @@ async function tick(env) {
 
   // população event-driven dos fixtures de mata-mata: confrontos já resolvidos
   // entram em fixtures.json + tabela games. Isolado em try/catch (não derruba o resto).
+  /** @type {false | { added: number[], updated: number[] } | string} */
   let fixturesOut = false;
   try {
     const { added, updated } = selectKnockoutFixtures(matches, fixtures, aliases, fixtureByNorm);
