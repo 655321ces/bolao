@@ -91,5 +91,8 @@
   "90": { "home": "Paraguai", "away": "França", "date": "04/07 18h", "phase": "R16" },
   "91": { "home": "Brasil", "away": "Noruega", "date": "05/07 17h", "phase": "R16" },
   "92": { "home": "México", "away": "Inglaterra", "date": "05/07 21h", "phase": "R16" },
-  "93": { "home": "EUA", "away": "Bélgica", "date": "06/07 21h", "phase": "R16" }
+  "93": { "home": "EUA", "away": "Bélgica", "date": "06/07 21h", "phase": "R16" },
+  "94": { "home": "Portugal", "away": "Espanha", "date": "06/07 16h", "phase": "R16" },
+  "95": { "home": "Argentina", "away": "Egito", "date": "07/07 13h", "phase": "R16" },
+  "96": { "home": "Suíça", "away": "Colômbia", "date": "07/07 17h", "phase": "R16" }
 }
