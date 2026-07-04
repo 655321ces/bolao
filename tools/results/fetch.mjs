@@ -112,10 +112,13 @@ async function main() {
     if (!gid) { unresolved.push(`sem fixture para ${hn} x ${an}`); continue; }
 
     const f = fixtures[gid];
-    // placar base: em pênaltis (mata-mata), fullTime vem somado com a disputa SÓ
-    // enquanto a API não processa o jogo — depois ela normaliza e fullTime volta a
-    // ser o placar nivelado. Como o nivelado é EMPATADO por definição: fullTime
-    // desempatado = somado (subtrai os pênaltis); empatado = já nivelado (usa direto).
+    // placar base: em pênaltis (mata-mata), fullTime vem somado com a disputa
+    // (= regularTime + extraTime + penalties convertidos). O nivelado é EMPATADO
+    // por definição, então fullTime desempatado = somado (subtrai os pênaltis);
+    // empatado com penalties presente = disputa ainda não somada (ex.: shootout ao
+    // vivo), já é o nivelado (usa direto). ATENÇÃO: penalties/winner podem vir
+    // corrompidos (jogo 86 da Copa 2026: penalties 4x4 = cobranças BATIDAS, não
+    // convertidas, e winner null) — placar inválido deve ser descartado.
     const pen = sc.duration === 'PENALTY_SHOOTOUT' || (sc.penalties && sc.penalties.home != null);
     let base = [ft.home, ft.away];
     if (pen && sc.penalties && sc.penalties.home != null && ft.home !== ft.away) base = [ft.home - sc.penalties.home, ft.away - sc.penalties.away];
