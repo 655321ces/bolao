@@ -112,11 +112,13 @@ async function main() {
     if (!gid) { unresolved.push(`sem fixture para ${hn} x ${an}`); continue; }
 
     const f = fixtures[gid];
-    // placar base: em pênaltis (mata-mata), fullTime vem somado com a disputa;
-    // subtrai os pênaltis p/ obter o placar nivelado de fim de prorrogação (= regularTime + extraTime)
+    // placar base: em pênaltis (mata-mata), fullTime vem somado com a disputa SÓ
+    // enquanto a API não processa o jogo — depois ela normaliza e fullTime volta a
+    // ser o placar nivelado. Como o nivelado é EMPATADO por definição: fullTime
+    // desempatado = somado (subtrai os pênaltis); empatado = já nivelado (usa direto).
     const pen = sc.duration === 'PENALTY_SHOOTOUT' || (sc.penalties && sc.penalties.home != null);
     let base = [ft.home, ft.away];
-    if (pen && sc.penalties && sc.penalties.home != null) base = [ft.home - sc.penalties.home, ft.away - sc.penalties.away];
+    if (pen && sc.penalties && sc.penalties.home != null && ft.home !== ft.away) base = [ft.home - sc.penalties.home, ft.away - sc.penalties.away];
     // reorienta para a ordem do fixture
     const apiHomeIsFixtureHome = norm(f.home) === norm(hn);
     const sco = apiHomeIsFixtureHome ? [base[0], base[1]] : [base[1], base[0]];

@@ -242,14 +242,22 @@ async function tick(env) {
     if (!gid) { unresolved.push(`sem fixture: ${hn} x ${an}`); continue; }
 
     const f = fixtures[gid];
-    // placar base: em pênaltis (mata-mata), fullTime vem somado com a disputa;
-    // subtrai os pênaltis p/ obter o placar nivelado de fim de prorrogação (= regularTime + extraTime)
+    // placar base: em pênaltis (mata-mata), fullTime vem somado com a disputa SÓ
+    // enquanto a API não processa o jogo — depois ela normaliza e fullTime volta a
+    // ser o placar nivelado. Como o nivelado é EMPATADO por definição: fullTime
+    // desempatado = somado (subtrai os pênaltis); empatado = já nivelado (usa direto).
     const pen = sc.duration === 'PENALTY_SHOOTOUT' || (sc.penalties && sc.penalties.home != null);
     let base = [ft.home, ft.away];
-    if (pen && sc.penalties && sc.penalties.home != null) base = [ft.home - sc.penalties.home, ft.away - sc.penalties.away];
+    if (pen && sc.penalties && sc.penalties.home != null && ft.home !== ft.away) base = [ft.home - sc.penalties.home, ft.away - sc.penalties.away];
     // reorienta para a ordem mandante×visitante do fixture
     const apiHomeIsFixtureHome = norm(f.home) === norm(hn);
     const score = apiHomeIsFixtureHome ? [base[0], base[1]] : [base[1], base[0]];
+    // rede de segurança: placar fora do check (0-99) do banco não entra no batch —
+    // uma linha inconsistente da API não pode derrubar o upsert dos demais jogos
+    if (score[0] < 0 || score[0] > 99 || score[1] < 0 || score[1] > 99) {
+      unresolved.push(`placar inconsistente: ${hn} x ${an} (${score.join('x')}, ft ${ft.home}x${ft.away}, pen ${sc.penalties && sc.penalties.home}x${sc.penalties && sc.penalties.away})`);
+      continue;
+    }
     // quem avança nos pênaltis: só mata-mata (f.phase), jogo finalizado e empatado
     let advances = null;
     if (f.phase && m.status === 'FINISHED' && pen && score[0] === score[1]) {
