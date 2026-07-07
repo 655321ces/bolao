@@ -96,5 +96,6 @@
   "95": { "home": "Argentina", "away": "Egito", "date": "07/07 13h", "phase": "R16" },
   "96": { "home": "Suíça", "away": "Colômbia", "date": "07/07 17h", "phase": "R16" },
   "97": { "home": "França", "away": "Marrocos", "date": "09/07 17h", "phase": "QF" },
-  "98": { "home": "Noruega", "away": "Inglaterra", "date": "11/07 18h", "phase": "QF" }
+  "98": { "home": "Noruega", "away": "Inglaterra", "date": "11/07 18h", "phase": "QF" },
+  "99": { "home": "Espanha", "away": "Bélgica", "date": "10/07 16h", "phase": "QF" }
 }
