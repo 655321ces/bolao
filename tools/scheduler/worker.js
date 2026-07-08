@@ -261,10 +261,19 @@ async function tick(env) {
       unresolved.push(`placar inconsistente: ${hn} x ${an} (${score.join('x')}, ft ${ft.home}x${ft.away}, pen ${sc.penalties && sc.penalties.home}x${sc.penalties && sc.penalties.away})`);
       continue;
     }
+    // rede de segurança 2: shootout implica nivelado EMPATADO por definição e,
+    // se FINISHED, winner resolvido. Linha que viola é podre (jogo 96: fullTime
+    // e penalties dessincronizados durante/após a disputa → 1x0 fantasma que
+    // passa no check 0-99) — pular preserva o último placar bom e o override
+    // manual no Supabase/results.json (a linha podre não se autocorrige).
+    const winnerSide = sc.winner === 'HOME_TEAM' ? 'home' : sc.winner === 'AWAY_TEAM' ? 'away' : null;
+    if (pen && (score[0] !== score[1] || (m.status === 'FINISHED' && !winnerSide))) {
+      unresolved.push(`penaltis inconsistentes: ${hn} x ${an} (${score.join('x')}, ft ${ft.home}x${ft.away}, pen ${sc.penalties && sc.penalties.home}x${sc.penalties && sc.penalties.away}, winner ${sc.winner})`);
+      continue;
+    }
     // quem avança nos pênaltis: só mata-mata (f.phase), jogo finalizado e empatado
     let advances = null;
     if (f.phase && m.status === 'FINISHED' && pen && score[0] === score[1]) {
-      const winnerSide = sc.winner === 'HOME_TEAM' ? 'home' : sc.winner === 'AWAY_TEAM' ? 'away' : null;
       if (winnerSide) advances = apiHomeIsFixtureHome ? winnerSide : (winnerSide === 'home' ? 'away' : 'home');
     }
     rows.push({
