@@ -100,5 +100,7 @@
   "99": { "home": "Espanha", "away": "Bélgica", "date": "10/07 16h", "phase": "QF" },
   "100": { "home": "Argentina", "away": "Suíça", "date": "11/07 22h", "phase": "QF" },
   "101": { "home": "França", "away": "Espanha", "date": "14/07 16h", "phase": "SF" },
-  "102": { "home": "Inglaterra", "away": "Argentina", "date": "15/07 16h", "phase": "SF" }
+  "102": { "home": "Inglaterra", "away": "Argentina", "date": "15/07 16h", "phase": "SF" },
+  "103": { "home": "França", "away": "Inglaterra", "date": "18/07 18h", "phase": "3P" },
+  "104": { "home": "Espanha", "away": "Argentina", "date": "19/07 16h", "phase": "F" }
 }
